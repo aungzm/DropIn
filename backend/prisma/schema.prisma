@@ -1,0 +1,82 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DB_URL")
+}
+
+model User {
+  id            String        @id @default(uuid())
+  username      String
+  email         String        @unique
+  password      String
+  role          String        @default("user")
+  createdAt     DateTime      @default(now())
+  spaces        Space[]       @relation("UserSpaces")
+  files         File[]        @relation("UserFiles")
+  profile       ProfilePic?   @relation("ProfilePic")
+  refreshToken  RefreshToken? @relation("UserRefreshToken")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  ownerId    String  @unique
+  user       User     @relation(fields: [ownerId], references: [id], name: "UserRefreshToken")
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+}
+
+model Space {
+  id          String      @id @default(uuid())
+  name        String
+  uploadedById  String
+  createdBy   User        @relation(fields: [createdById], references: [id], name: "UserSpaces")
+  createdById String
+  password    String?
+  createdAt   DateTime    @default(now())
+  files       File[]      @relation("SpaceFiles")
+  spaceLinks  SpaceLink[] @relation("SpaceLinks")
+}
+
+model File {
+  id            String      @id @default(uuid())
+  name          String
+  uploadedById  String
+  uploadedBy    User        @relation(fields: [uploadedById], references: [id], name: "UserFiles")
+  spaceId       String?
+  space         Space?      @relation(fields: [spaceId], references: [id], name: "SpaceFiles")
+  storageUrl    String
+  password      String?
+  createdAt     DateTime    @default(now())
+  fileLinks     FileLink[]  @relation("FileLinks")
+}
+
+model FileLink {
+  id           String   @id @default(uuid())
+  file         File     @relation(fields: [fileId], references: [id], name: "FileLinks")
+  fileId       String
+  shareSecret  String
+  downloads    Int @default(0)
+  maxDownloads Int @default(-1)
+  createdAt    DateTime @default(now())
+}
+
+model SpaceLink {
+  id          String   @id @default(uuid())
+  space       Space    @relation(fields: [spaceId], references: [id], name: "SpaceLinks")
+  spaceId     String
+  shareSecret String
+  createdAt   DateTime @default(now())
+}
+
+model ProfilePic {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id], name: "ProfilePic")
+  userId     String   @unique
+  storageUrl String
+  createdAt  DateTime @default(now())
+}
