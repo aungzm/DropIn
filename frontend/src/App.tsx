@@ -5,6 +5,7 @@ import SignUp from "./pages/Signup";
 import Setting from "./pages/Setting";
 import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
+import Users from "./pages/Users";
 import PrivateRoute from "./components/privateRoute";
 
 const App: React.FC = () => {
@@ -17,6 +18,8 @@ const App: React.FC = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/settings" element={<Setting />} />
         <Route path="/upload" element={<Upload />} />
+        <Route path="/users" element={<Users />} />
+
         {/* Private Routes */}
 
         <Route element={<PrivateRoute />}>

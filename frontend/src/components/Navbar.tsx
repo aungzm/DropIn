@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
     const navigate = useNavigate();
+    const isAdmin = true;
     return (
         <nav className="bg-black fixed w-full z-20 top-0 start-0 border-b">
             {/* Container */}
@@ -39,6 +40,9 @@ const Navbar = () => {
                             <li>
                                 <a href="#settings" onClick={() => navigate('/settings')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
                             </li>
+                            {isAdmin && (<li>
+                                <a href="#users" onClick={() => navigate('/users')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Users</a>
+                            </li>)}
                             <li>
                                 <a href="#logout" onClick={() => navigate('/login')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
                             </li>

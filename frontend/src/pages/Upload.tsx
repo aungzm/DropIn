@@ -314,7 +314,7 @@ const Upload = () => {
           just the text/endpoint changes 
           depending on modalMode. 
         */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700">
               New Password
@@ -323,8 +323,7 @@ const Upload = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
-                         focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="border rounded-lg px-1 py-2 mt-1 mb-5 text-sm w-full"
             />
           </div>
           <div>
@@ -335,8 +334,7 @@ const Upload = () => {
               type="password"
               value={repeatPassword}
               onChange={(e) => setRepeatPassword(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
-                         focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="border rounded-lg px-1 py-2 mt-1 mb-5 text-base w-full"
             />
           </div>
           <div className="flex justify-end space-x-2 mt-4">
