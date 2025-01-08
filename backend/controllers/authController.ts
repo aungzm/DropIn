@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { PrismaClient } from "@prisma/client";
+import jwt, { JsonWebTokenError } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import path from "path";
-import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 const envPath = path.resolve(__dirname, "../../.env");
@@ -165,19 +165,25 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
 // Controller for refreshing access token
 export const refreshAccessToken = async (req: Request, res: Response): Promise<void> => {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-        res.status(400).json({ error: "Refresh token is required" });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
         return;
     }
+    
+    const { refreshToken } = req.query;
 
     try {
         // Verify the refresh token
-        const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as { userId: string };
+        const decoded = jwt.verify(String(refreshToken), process.env.REFRESH_TOKEN_SECRET!) as { userId: string };
+        if (!decoded) {
+            res.status(400).json({ error: "Invalid refresh token" });
+            return;
+        }
 
         // Check if the refresh token exists in the database
         const existingRefreshToken = await prisma.refreshToken.findUnique({
-            where: { token: refreshToken },
+            where: { token: String(refreshToken) },
         });
 
         if (!existingRefreshToken) {
@@ -186,8 +192,8 @@ export const refreshAccessToken = async (req: Request, res: Response): Promise<v
         }
 
         // Check if the refresh token has expired
-        if (existingRefreshToken.expiresAt < new Date()) {
-            await prisma.refreshToken.delete({ where: { token: refreshToken } });
+        if (new Date(existingRefreshToken.expiresAt) < new Date()) {
+            await prisma.refreshToken.delete({ where: { token: String(refreshToken) } });
             res.status(400).json({ error: "Refresh token has expired" });
             return;
         }
@@ -197,6 +203,7 @@ export const refreshAccessToken = async (req: Request, res: Response): Promise<v
             res.status(400).json({ error: "User not found" });
             return;
         }
+
         // Generate a new access token
         const newAccessToken = generateAccessToken(user);
         res.status(200).json({
@@ -204,8 +211,13 @@ export const refreshAccessToken = async (req: Request, res: Response): Promise<v
             accessToken: newAccessToken,
         });
     } catch (error) {
-        console.error("Error refreshing access token:", error);
-        res.status(500).json({ error: "Internal server error" });
+        if (error instanceof JsonWebTokenError) {
+            // Handle JWT verification errors
+            res.status(400).json({ error: "Invalid refresh token" });
+        } else {
+            console.error("Error refreshing access token:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
     }
 };
 

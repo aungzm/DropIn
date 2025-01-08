@@ -1,5 +1,5 @@
 import express from "express";
-import { body } from "express-validator";
+import { body, query} from "express-validator";
 import { authenticateToken, } from "../middlewares/authenticateToken";
 import { registerUser, loginUser, refreshAccessToken, logoutUser}  from "../controllers/authController";
 
@@ -30,7 +30,13 @@ router.post(
 loginUser
 );
 
-router.get("/access-token", refreshAccessToken);
+router.get(
+    "/access-token",
+    [
+        query("refreshToken", "Must be a valid JsonWebToken").isJWT(),
+    ],
+    refreshAccessToken
+);
 
 router.post("/logout",authenticateToken,logoutUser)
 
