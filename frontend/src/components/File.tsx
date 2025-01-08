@@ -6,7 +6,6 @@ interface FileCardProps {
   className?: string;
   fileId: string;
   fileName: string;
-  fileIcon?: string;  // path to an image or SVG icon
   onSettingsClick?: () => void;
   onDownloadClick?: () => void;
   onEditClick?: () => void;
@@ -16,8 +15,30 @@ interface FileCardProps {
 const FileCard: React.FC<FileCardProps> = ({
   fileId,
   fileName,
-  fileIcon = 'https://via.placeholder.com/64?text=IMG', 
 }) => {
+  // Ext file icon mapping
+  const fileIconMap: { [key: string]: string } = {
+    'pdf': '/src/assets/pdf.png',
+    'doc': '/src/assets/doc.png',
+    'xls': '/src/assets/xls.png',
+    'jpg': '/src/assets/jpg.png',
+    'png': '/src/assets/png.png',
+    'default': '/src/assets/file.png',
+    'xlsx': '/src/assets/xlsx.png',
+    'docx': '/src/assets/docx.png',
+    'ppt': '/src/assets/ppt.png',
+    'pptx': '/src/assets/pptx.png',
+    'txt': '/src/assets/txt.png',
+    'gif': '/src/assets/gif.png',
+    'jpeg': '/src/assets/jpeg.png',
+  };
+
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase() || 'default';
+    return fileIconMap[ext] || fileIconMap['default'];
+  };
+
+  const fileIcon = getFileIcon(fileName);
   const [showModal, setShowModal] = useState(false);
   const [isFileLocked, setIsFileLocked] = useState(false);
   fileId = "123";
