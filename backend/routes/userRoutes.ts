@@ -2,7 +2,7 @@ import express from "express";
 import { body } from "express-validator";
 import { authenticateToken } from "../middlewares/authenticateToken";
 import { verifyAccountOwnershipOrAdmin, verifySpaceOwnershipOrAdmin } from "../middlewares/authMiddleware";
-import { deleteAccount, resetPassword, changeUserName, changeProfilePic, getAllSpaces, getUserInfo} from "../controllers/userController";
+import { deleteAccount, resetPassword, changeUserName, changeProfilePic, getAllSpaces, getUserInfo, getProfilePic} from "../controllers/userController";
 import multer from "multer";
 
 const router = express.Router();
@@ -50,6 +50,13 @@ router.get(
     authenticateToken,
     verifyAccountOwnershipOrAdmin,
     getUserInfo
+)
+
+router.get(
+    "/profile",
+    authenticateToken,
+    verifyAccountOwnershipOrAdmin,
+    getProfilePic
 )
 
 // Route for getting space information

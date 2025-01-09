@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import fs from "fs/promises";
 import path from "path";
 import bcrypt from "bcryptjs";
+import { fileExists } from "../utils/fileHelper";
 
 const prisma = new PrismaClient();
 
@@ -204,7 +205,7 @@ export const changeProfilePic = async (req: Request, res: Response): Promise<voi
     }
 
     if (!req.file) {
-        res.status(400).send("No file uploaded.");
+        res.status(400).json({ error: "No file uploaded." });
         return;
     }
 
@@ -213,48 +214,114 @@ export const changeProfilePic = async (req: Request, res: Response): Promise<voi
     if (fileSizeInMB > 5) {
         try {
             await fs.unlink(req.file.path);
+            res.status(400).json({ error: "File size exceeds 5MB limit." });
         } catch (err) {
-            console.error(`Error deleting file: ${req.file.path}`, err);
+            console.error(`Error deleting oversized file: ${req.file.path}`, err);
         }
-
-        res.status(400).send("File size exceeds 5MB limit.");
         return;
     }
 
-    const fileExtension = req.file.originalname.split(".").pop();
-
-    if (!["jpg", "jpeg", "png"].includes(fileExtension!.toLowerCase())) {
-        res.status(400).send("Invalid file type. Only JPG, JPEG, and PNG files are allowed.");
+    const fileExtension = req.file.originalname.split(".").pop()?.toLowerCase();
+    if (!["jpg", "jpeg", "png"].includes(fileExtension!)) {
+        try {
+            await fs.unlink(req.file.path);
+            res.status(400).json({ error: "Invalid file type. Only JPG, JPEG, and PNG are allowed." });
+        } catch (err) {
+            console.error(`Error deleting invalid file: ${req.file.path}`, err);
+        }
+        return;
     }
 
-    const profilePicUrl = `/uploads/${req.file.filename}`;
+    const tempPath = req.file.path; // Temporary path where Multer saved the file
+    const targetDir = path.join(__dirname, "../../profilePic/", userId);
+    const targetPath = path.join(targetDir, req.file.originalname);
+    const storageUrl = `/uploads/${userId}/${req.file.originalname}`; // URL to store in DB
 
     try {
+        // Ensure the target directory exists
+        await fs.mkdir(targetDir, { recursive: true });
+
+        // Check if an old profile pic exists
         const existingProfilePic = await prisma.profilePic.findUnique({ where: { userId } });
 
         if (existingProfilePic) {
+            // Attempt to delete the old file from the filesystem
             try {
-                await fs.unlink(existingProfilePic.storageUrl);
+                await fs.unlink(path.join(__dirname, "../../", existingProfilePic.storageUrl));
             } catch (err) {
                 console.error(`Error deleting old profile picture: ${existingProfilePic.storageUrl}`, err);
             }
+        }
 
+        // Move the new file to the target directory
+        await fs.rename(tempPath, targetPath);
+
+        // Update or create the database record
+        if (existingProfilePic) {
             await prisma.profilePic.update({
                 where: { userId },
-                data: { storageUrl: profilePicUrl },
+                data: { storageUrl },
             });
         } else {
             await prisma.profilePic.create({
                 data: {
                     userId,
-                    storageUrl: profilePicUrl,
+                    storageUrl,
                 },
             });
         }
 
-        res.status(200).json({ message: "Profile picture changed successfully!" });
+        res.status(201).json({ message: "File uploaded successfully!", file: storageUrl });
     } catch (error) {
-        console.error("Error changing profile picture:", error);
+        console.error("Error during profile picture upload:", error);
+
+        // Rollback: Ensure no file remains if the process fails
+        try {
+            if (await fileExists(tempPath)) {
+                await fs.unlink(tempPath);
+            }
+            if (await fileExists(targetPath)) {
+                await fs.unlink(targetPath);
+            }
+        } catch (err) {
+            console.error("Error cleaning up after failure:", err);
+        }
+
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const getProfilePic = async (req: Request, res: Response): Promise<void> => {
+    const { id: userId } = req.user!; // Assuming `req.user` is populated by authentication middleware
+
+    try {
+        // Fetch profile picture metadata from the database
+        const profilePic = await prisma.profilePic.findUnique({ where: { userId } });
+        if (!profilePic) {
+            res.status(404).json({ error: "Profile picture not found" });
+            return;
+        }
+
+        // Resolve the full file path
+        const filePath = path.join(__dirname, "../../", profilePic.storageUrl);
+
+        // Check if the file exists
+        try {
+            await fs.access(filePath); // Throws if the file does not exist
+        } catch {
+            res.status(404).json({ error: "Profile picture file not found on server" });
+            return;
+        }
+
+        // Send the file as a response
+        res.sendFile(filePath, (err) => {
+            if (err) {
+                console.error("Error sending file:", err);
+                res.status(500).json({ error: "Internal server error while sending the file" });
+            }
+        });
+    } catch (error) {
+        console.error("Error retrieving profile picture:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
