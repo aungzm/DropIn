@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { PrismaClient } from "@prisma/client";
 import fs from "fs/promises";
+import path from "path";
 
 const prisma = new PrismaClient();
 
@@ -125,5 +126,39 @@ export const demoteUser = async (req: Request, res: Response): Promise<void> => 
     } catch (error) {
         console.error("Error demoting admin:", error);
         res.status(500).json({ error: "Failed to demote admin" });
+    }
+};
+
+export const getUserProfilePic = async (req: Request, res: Response): Promise<void> => {
+    const { userId } = req.params; 
+    try {
+        // Fetch profile picture metadata from the database
+        const profilePic = await prisma.profilePic.findUnique({ where: { userId } });
+        if (!profilePic) {
+            res.status(404).json({ error: "Profile picture not found" });
+            return;
+        }
+
+        // Resolve the full file path
+        const filePath = path.join(__dirname, "../../", profilePic.storageUrl);
+
+        // Check if the file exists
+        try {
+            await fs.access(filePath); // Throws if the file does not exist
+        } catch {
+            res.status(404).json({ error: "Profile picture file not found on server" });
+            return;
+        }
+
+        // Send the file as a response
+        res.sendFile(filePath, (err) => {
+            if (err) {
+                console.error("Error sending file:", err);
+                res.status(500).json({ error: "Internal server error while sending the file" });
+            }
+        });
+    } catch (error) {
+        console.error("Error retrieving profile picture:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 };

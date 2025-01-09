@@ -2,12 +2,14 @@ import express from "express";
 import { param } from "express-validator";
 import { authenticateToken } from "../middlewares/authenticateToken";
 import { verifyAccountIsAdmin } from "../middlewares/authMiddleware";
-import { getAllUsers, deleteUser, promoteUser } from "../controllers/adminController";
+import { getAllUsers, deleteUser, promoteUser, getUserProfilePic } from "../controllers/adminController";
 
 const router = express.Router();
 
 // Route for getting all users (RESTful)
 router.get("/users", authenticateToken, verifyAccountIsAdmin, getAllUsers);
+
+router.get("/users/:userId/profile", [param("id", "User ID is required").isUUID()], authenticateToken, verifyAccountIsAdmin, getUserProfilePic);
 
 // Route for deleting a user by ID 
 router.delete("/users/:userId",
@@ -18,7 +20,5 @@ router.delete("/users/:userId",
 );
 
 router.put("/users/:userId/promote", [param("id", "User ID is required").isUUID()], authenticateToken, verifyAccountIsAdmin, promoteUser);
-
-
 
 export default router;
