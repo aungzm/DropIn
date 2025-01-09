@@ -8,8 +8,9 @@ logs/
 *.log
 *.log.*
 
-# Uploads
+# Uploads and Profile Pictures
 uploads/*
+profilePic/*
 
 # Dependency directories
 jspm_packages/
@@ -32,42 +33,10 @@ jspm_packages/
 # dotenv environment variables file
 .env
 
-# Next.js build output
-.next/
-
-# Nuxt.js build output
-.nuxt/
-
-# Gatsby files
-.cache/
-public/
-
-# Vuepress build output
-.vuepress/dist
-
-# Serverless directories
-.serverless/
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# TernJS port file
-.tern-port
-
+# Prisma & Database
+backend/prisma/migrations/
+*.db
+sqlite.db
 # VS Code
 .vscode/
 
-# JetBrains IDEs
-.idea/
-
-# MacOS
-.DS_Store
-
-# Windows
-Thumbs.db
-
-# Migration files
-backend/prisma/migrations/

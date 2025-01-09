@@ -235,7 +235,7 @@ export const changeProfilePic = async (req: Request, res: Response): Promise<voi
     const tempPath = req.file.path; // Temporary path where Multer saved the file
     const targetDir = path.join(__dirname, "../../profilePic/", userId);
     const targetPath = path.join(targetDir, req.file.originalname);
-    const storageUrl = `/uploads/${userId}/${req.file.originalname}`; // URL to store in DB
+    const storageUrl = `/profilePic/${userId}/${req.file.originalname}`; // URL to store in DB
 
     try {
         // Ensure the target directory exists
@@ -304,6 +304,7 @@ export const getProfilePic = async (req: Request, res: Response): Promise<void> 
 
         // Resolve the full file path
         const filePath = path.join(__dirname, "../../", profilePic.storageUrl);
+        console.log(filePath);
 
         // Check if the file exists
         try {
