@@ -114,7 +114,6 @@ export const demoteUser = async (req: Request, res: Response): Promise<void> => 
     }
 
     const { userId } = req.params;
-
     try {
         await prisma.user.update({
             where: { id: userId, role: "admin" },

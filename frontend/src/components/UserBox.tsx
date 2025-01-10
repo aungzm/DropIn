@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import api from '../api/api';
 
 interface SpaceProps {
   profilePic: string;
@@ -11,7 +11,7 @@ interface SpaceProps {
 
 const Space: React.FC<SpaceProps> = ({ profilePic, userId, email, userName, role, }) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [AreYouSureModal, setShowRenameModal] = useState(false);
+    const [AreYouSureModal, setAreYouSureModal] = useState(false);
     const [newUserName, setNewUserName] = useState('');
     const [dialogueText, setDialogueText] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -26,17 +26,57 @@ const Space: React.FC<SpaceProps> = ({ profilePic, userId, email, userName, role
         }
     };
 
-    const handleRename = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (newUserName.trim()) {
-        setNewUserName(newUserName);
-        setShowRenameModal(false);
-        setNewUserName('');
+    const handleConfirmButton = async () => {
+        setAreYouSureModal(false);
+        if (dialogueText.includes('delete')) {
+            await handleDeleteUser();
+            setDialogueText('');
+        } else if (dialogueText.includes('promote')) {
+            await handlePromoteUser();
+            setDialogueText('');
+        } else if (dialogueText.includes('demote')) {
+            await handleDemoteUser();
+            setDialogueText('');
+        } else {
+            console.error('Invalid action');
         }
     };
 
-    const onDelete = () => {
-        // onDelete(userId);
+    const handleDeleteUser = async () => {
+        // Call the API to delete the user
+        try {
+            await api.delete(`/admins/users/${userId}`);
+            // Reload the page
+            window.location.reload();
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('Failed to delete user');
+        }
+
+    };
+
+    const handleDemoteUser = async () => {
+        // Call the API to demote the user
+        try {
+            await api.put(`/admins/users/${userId}/demote`);
+            // Reload the page
+            window.location.reload();
+        } catch (error) {
+            console.error('Error demoting user:', error);
+            alert('Failed to demote user');
+        }
+    };
+    
+    const handlePromoteUser = async () => {
+        // Call the API to promote the user
+        try {
+            await api.put(`/admins/users/${userId}/promote`);
+            // Reload the page
+            window.location.reload();
+        } catch (error) {
+            console.error('Error promoting user:', error);
+            alert('Failed to promote user');
+        }
     };
 
 
@@ -80,19 +120,23 @@ const Space: React.FC<SpaceProps> = ({ profilePic, userId, email, userName, role
                 <li>
                 <button
                     onClick={() => {
-                        setShowRenameModal(true);
+                        setAreYouSureModal(true);
                         setDropdownOpen(false);
-                        setDialogueText(`Are you sure you want to promote ${userName}?`);
+                        setDialogueText(
+                            role === 'user' 
+                                ? `Are you sure you want to promote ${userName}?`
+                                : `Are you sure you want to demote ${userName}?`
+                        );
                     }}
-                    className="block w-full text-start px-4 py-2 text-sm text-grey-700 hover:bg-gray-100"
+                    className="block w-full text-start px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                    Promote User
+                    {role === 'user' ? 'Promote User' : 'Demote User'}
                 </button>
                 </li>
                 <li>
                 <button
                     onClick={() => {
-                    setShowRenameModal(true);
+                    setAreYouSureModal(true);
                     setDropdownOpen(false);
                     setDialogueText(`Are you sure you want to delete ${userName}?`);
                     }}
@@ -116,20 +160,20 @@ const Space: React.FC<SpaceProps> = ({ profilePic, userId, email, userName, role
             <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
                 <h3 className="text-lg font-semibold mb-4 text-center">Caution</h3>
-                <form onSubmit={handleRename}>
+                <form>
                 <h5 className='text-center mb-4'>{dialogueText}</h5>
                 <div className="flex gap-4">
                     <button
                     type="button"
-                    onClick={() =>{setShowRenameModal(false), setDialogueText('')} }
+                    onClick={() =>{setAreYouSureModal(false)} }
                     className="bg-gray-500 text-white px-4 py-2 rounded-lg w-1/2"
                     >
                     Cancel
                     </button>
                     <button
-                    type="submit"
+                    type="button"
                     className="bg-blue-500 text-white px-4 py-2 rounded-lg w-1/2"
-                    onClick={() => { setDialogueText(''); setShowRenameModal(false); }}
+                    onClick={() => { setAreYouSureModal(false); handleConfirmButton();}}
                     >
                     Confirm
                     </button>
@@ -140,6 +184,6 @@ const Space: React.FC<SpaceProps> = ({ profilePic, userId, email, userName, role
         )}
         </div>
     );
-    };
+};
 
 export default Space;

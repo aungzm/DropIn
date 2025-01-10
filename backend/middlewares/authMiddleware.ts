@@ -110,3 +110,42 @@ export const verifyAccountIsAdmin = async (req: Request, res: Response, next: Ne
         return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 };
+
+export const notDemotingSelf = async (req: Request, res: Response, next: NextFunction) => {
+    const { id: userId, role: userRole } = req.user!; // Use user info from authenticateToken
+    const { userId: targetUserId } = req.params;
+    if (!userId) {
+        return res.status(403).json({ error: "Forbidden userId is missing" });
+    }
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+        return;
+    }
+
+    if (userId === targetUserId) {
+        return res.status(403).json({ error: "Forbidden: Cannot demote self" });
+    }
+    next();
+}
+
+
+export const noteDeletingSelf = async (req: Request, res: Response, next: NextFunction) => {
+    const { id: userId, role: userRole } = req.user!; // Use user info from authenticateToken
+    const { userId: targetUserId } = req.params;
+    if (!userId) {
+        return res.status(403).json({ error: "Forbidden userId is missing" });
+    }
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+        return;
+    }
+
+    if (userId === targetUserId) {
+        return res.status(403).json({ error: "Forbidden: Cannot delete self" });
+    }
+    next();
+};
