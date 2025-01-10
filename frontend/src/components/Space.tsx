@@ -7,9 +7,10 @@ interface SpaceProps {
   creator: string;
   onDeleteSpace: () => void;
   onClickSpace: () => void;
+  onRenameSuccess: (newName: string) => void; // New callback prop
 }
 
-const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpace, onClickSpace }) => {
+const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpace, onClickSpace, onRenameSuccess }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
@@ -26,7 +27,6 @@ const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpac
   };
 
   const onRenameSpace = (newName: string) => {
-    console.log(`Renaming space to ${newName}`);
     api.put(`/spaces/${spaceId}`, { newSpaceName: newName });
   };
 
@@ -35,6 +35,7 @@ const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpac
     if (newSpaceName.trim()) {
       onRenameSpace(newSpaceName);
       setShowRenameModal(false);
+      onRenameSuccess(newSpaceName); // Notify parent about the updated name
       setNewSpaceName('');
     }
   };

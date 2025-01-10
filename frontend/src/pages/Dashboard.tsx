@@ -46,6 +46,13 @@ const Dashboard = () => {
                             onClickSpace={() => navigate(`/upload/${space.id}`)}
                             creator={space.createdBy.username}
                             onDeleteSpace={() => api.delete(`/spaces/${space.id}`)}
+                            onRenameSuccess={(newName) => {
+                                setSpaces((prevSpaces) =>
+                                  prevSpaces.map((s) =>
+                                    s.id === space.id ? { ...s, name: newName } : s
+                                  )
+                                );
+                              }}
                         />
                     ))}
                 <AddSpace />
