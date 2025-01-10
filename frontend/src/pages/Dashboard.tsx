@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import Space from '../components/Space';
 import AddSpace from '../components/AddSpace';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/api'; // Assuming you have a configured Axios instance
 
 const Dashboard = () => {
+    const navigate = useNavigate(); 
     const [spaces, setSpaces] = useState<any[]>([]); // State to store spaces
     const [loading, setLoading] = useState<boolean>(true); // Loading state
     const [error, setError] = useState<string | null>(null); // Error state
@@ -37,12 +39,13 @@ const Dashboard = () => {
                 {!loading &&
                     !error &&
                     spaces.map((space) => (
-                        <Space
+                        <Space  
                             key={space.id}
+                            spaceId={space.id}
                             spaceName={space.name}
+                            onClickSpace={() => navigate(`/upload/${space.id}`)}
                             creator={space.createdBy.username}
-                            onDelete={() => console.log(`Delete clicked for ${space.name}`)}
-                            onRename={(newName) => console.log(`Rename clicked for ${space.name}: ${newName}`)}
+                            onDeleteSpace={() => api.delete(`/spaces/${space.id}`)}
                         />
                     ))}
                 <AddSpace />

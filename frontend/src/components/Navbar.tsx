@@ -29,7 +29,7 @@ const Navbar = () => {
                     setProfilePic(imageUrl);
                 } catch (error: any) {
                     if (error.response?.data?.error === "Profile picture not found") {
-                        setProfilePic("https://via.placeholder.com/150"); // Default placeholder image
+                        setProfilePic("https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg"); // Default placeholder image
                     } else {
                         console.error("Error fetching profile picture:", error);
                     }

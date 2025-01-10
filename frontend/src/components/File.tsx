@@ -6,6 +6,7 @@ interface FileCardProps {
   className?: string;
   fileId: string;
   fileName: string;
+  locked: boolean;
   onSettingsClick?: () => void;
   onDownloadClick?: () => void;
   onEditClick?: () => void;
@@ -15,6 +16,7 @@ interface FileCardProps {
 const FileCard: React.FC<FileCardProps> = ({
   fileId,
   fileName,
+  locked,
 }) => {
   // Ext file icon mapping
   const fileIconMap: { [key: string]: string } = {
@@ -43,7 +45,7 @@ const FileCard: React.FC<FileCardProps> = ({
   const [isFileLocked, setIsFileLocked] = useState(false);
   fileId = "123";
   // "lock" or "unlock"
-  const [modalMode, setModalMode] = useState("lock");
+  const [modalMode, setModalMode] = useState(locked ? "lock" : "unlock");
 
   // Password fields
   const [password, setPassword] = useState("");

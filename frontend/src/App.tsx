@@ -17,7 +17,7 @@ const App: React.FC = () => {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/settings" element={<Setting />} />
-        <Route path="/upload" element={<Upload />} />
+        <Route path="/upload/:spaceId" element={<Upload />} />
         <Route path="/users" element={<Users />} />
 
         {/* Private Routes */}

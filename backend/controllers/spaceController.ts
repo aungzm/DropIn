@@ -285,19 +285,45 @@ export const getSpaceInfo = async (req: Request, res: Response): Promise<void> =
     try {
         const space = await prisma.space.findUnique({
             where: { id: spaceId },
-            include: {
+            select: {
+                id: true,
+                name: true,
+                createdAt: true,
+                password: true, // Fetch raw `password` field
                 createdBy: { select: { id: true, username: true, email: true } },
-                files: true,
-                spaceLinks: true,
+                files: {
+                    select: {
+                        id: true,
+                        name: true,
+                        storageUrl: true,
+                        createdAt: true,
+                        password: true, // Fetch raw `password` field
+                    },
+                },
+                spaceLinks: {
+                    select: {
+                        id: true,
+                        shareSecret: true,
+                    },
+                },
             },
         });
-
+        
         if (!space) {
             res.status(404).json({ error: "Space not found" });
             return;
         }
-
-        res.status(200).json({ space });
+        
+        // Post-process the result
+        const processedSpace = {
+            ...space,
+            password: space.password ? "Yes" : "No", // Replace `null` with `"No"`
+            files: space.files.map((file) => ({
+                ...file,
+                password: file.password ? "Yes" : "No", 
+            })),
+        };
+        res.status(200).json({ space: processedSpace });        
     } catch (error) {
         console.error("Error retrieving space info:", error);
         res.status(500).json({ error: "Internal server error" });

@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import api from '../api/api';
 
 interface SpaceProps {
+  spaceId: string;
   spaceName: string;
   creator: string;
-  onDelete: () => void;
-  onRename: (newName: string) => void;
+  onDeleteSpace: () => void;
+  onClickSpace: () => void;
 }
 
-const Space: React.FC<SpaceProps> = ({ spaceName, creator, onDelete, onRename }) => {
-  const navigate = useNavigate();
+const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpace, onClickSpace }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
@@ -25,17 +25,26 @@ const Space: React.FC<SpaceProps> = ({ spaceName, creator, onDelete, onRename })
     }
   };
 
+  const onRenameSpace = (newName: string) => {
+    console.log(`Renaming space to ${newName}`);
+    api.put(`/spaces/${spaceId}`, { newSpaceName: newName });
+  };
+
   const handleRename = (e: React.FormEvent) => {
     e.preventDefault();
     if (newSpaceName.trim()) {
-      onRename(newSpaceName);
+      onRenameSpace(newSpaceName);
       setShowRenameModal(false);
       setNewSpaceName('');
     }
   };
 
   const handleUploadPage = () => {
-    navigate(`/upload`);
+    onClickSpace();
+  }
+
+  const handlDelete = () => {
+    onDeleteSpace();
   }
 
   useEffect(() => {
@@ -88,7 +97,7 @@ const Space: React.FC<SpaceProps> = ({ spaceName, creator, onDelete, onRename })
             </li>
             <li>
               <button
-                onClick={onDelete}
+                onClick={handlDelete}
                 className="block w-full text-start px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
               >
                 Delete

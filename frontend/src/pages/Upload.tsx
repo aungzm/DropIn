@@ -1,15 +1,18 @@
 import React from "react";
 import File from "../components/File";
 import Navbar from "../components/Navbar";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import api from "../api/api";
 import Modal from "../components/Modal";
 
 const Upload = () => {
   const navigate = useNavigate();
+  const { spaceId } = useParams<{ spaceId: string }>();
   const [isSpaceLocked, setIsSpaceLocked] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [spaceName, setSpaceName] = useState("Loading...");
+  const [files, setFiles] = useState<any[]>([]);
 
   // "lock" or "unlock"
   const [modalMode, setModalMode] = useState("lock");
@@ -19,42 +22,64 @@ const Upload = () => {
   const [repeatPassword, setRepeatPassword] = useState("");
   
     // Handler for opening the modal
-  const handleUnlockClick = () => {
-    setModalMode("lock");
-    setShowModal(true);
-  };
-
-    const handleLockClick = () => {
-      setModalMode("unlock");
-      setShowModal(true);
-    };
+    useEffect(() => {
+      const fetchSpaceDetails = async () => {
+          try {
+              const response = await api.get(`/spaces/${spaceId}`);
+              const space = response.data.space;
   
-    // Handler for closing the modal
-    const handleCloseModal = () => {
-      setShowModal(false);
-      setPassword("");
-      setRepeatPassword("");
-    };
+              setSpaceName(space.name);
+              setIsSpaceLocked(space.password === "Yes"); // Convert "Yes"/"No" to boolean
+              console.log("Space space password:", space.password);
+              console.log("Space Locked:", space.password === "Yes"); // Log converted value
+              setFiles(space.files || []);
+          } catch (error) {
+              console.error("Error fetching space details:", error);
+              navigate("/dashboard"); // Redirect if space is not found
+          }
+      };
   
-    // Single function to handle "Lock" or "Unlock" based on modalMode
-  const handleSubmit = () => {
-    if (password !== repeatPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
+      fetchSpaceDetails();
+  }, [spaceId, navigate]);
+  
 
-    if (modalMode === "lock") {
-      // Lock logic
-      console.log("Locking space with password");
-      // api call for lock here
-    } else {
-      // Unlock logic
-      console.log("Unocking space with password");
-      // api call for unlock here
-    }
+    const handleLockUnlock = async () => {
+      if (password !== repeatPassword) {
+        alert("Passwords do not match!");
+        return;
+      }
+  
+      try {
 
-    // Close modal
-    handleCloseModal();
+        if (modalMode === "lock") {
+          if (password.length < 8) {
+            alert("Password must be at least 8 characters long!");
+            return;
+          } else {
+            await api.patch(`/spaces/${spaceId}/lock`, {password, repeatPassword});
+            setModalMode("unlock");
+          }
+        } else {
+          if (password.length < 8) {
+            alert("Password must be at least 8 characters long!");
+            return;
+          } else {
+            await api.patch(`/spaces/${spaceId}/unlock`, {password, repeatPassword});
+            setModalMode("lock");
+          }
+        }
+        setIsSpaceLocked(modalMode === "lock");
+        alert(`Space ${modalMode === "lock" ? "locked" : "unlocked"} successfully!`);
+        setShowModal(false);
+      } catch (error) {
+        console.error(`Error ${modalMode === "lock" ? "locking" : "unlocking"} space:`, error);
+        console.log(error);
+        alert(`Failed to ${modalMode === "lock" ? "lock" : "unlock"} the space.`);
+      } finally {
+        setPassword("");
+        setRepeatPassword("");
+        setShowModal(false);
+      }
   };
 
   // Decide what text to show in the modal:
@@ -91,7 +116,10 @@ const Upload = () => {
         { isSpaceLocked && (<button
           className="text-blue-700 hover:text-blue-800"
           title="Unlock"
-          onClick={handleUnlockClick}
+          onClick={() => {
+            setModalMode("unlock");
+            setShowModal(true);
+          }}
         >
           <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M3 3L21 21M17 10V8C17 5.23858 14.7614 3 12 3C11.0283 3 10.1213 3.27719 9.35386 3.75681M7.08383 
@@ -100,14 +128,18 @@ const Upload = () => {
           17.8802 4 16.2V14.8C4 13.1198 4 12.2798 4.32698 11.638C4.6146 11.0735 5.07354 10.6146 5.63803 10.327C5.99429 10.1455 
           6.41168 10.0647 7 10.0288M19.9998 14.4023C19.9978 12.9831 19.9731 12.227 19.673 11.638C19.3854 11.0735 18.9265 10.6146 
           18.362 10.327C17.773 10.0269 17.0169 10.0022 15.5977 10.0002M10 10H8.8C8.05259 10 7.47142 10 7 10.0288" 
-          stroke="#000000" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round"/>
+          stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>)}
         {/* Lock SVG */}
         { !isSpaceLocked && (<button
           className="text-blue-700 hover:text-blue-800"
           title="Lock"
-          onClick={handleLockClick}
+          onClick={() => {
+            setModalMode("lock");
+            setShowModal(true);
+          }}
+
         >
           <svg
             width="20"
@@ -242,7 +274,7 @@ const Upload = () => {
                 <defs>
 
             </defs>
-                <g id="Page-1" stroke="none" stroke-width="1" fill="none" fillRule="evenodd">
+                <g id="Page-1" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
                     <g id="Dribbble-Light-Preview" transform="translate(-179.000000, -360.000000)" fill="#FF0000">
                         <g id="icons" transform="translate(56.000000, 160.000000)">
                             <path d="M130.35,216 L132.45,216 L132.45,208 L130.35,208 L130.35,216 Z M134.55,216 L136.65,216 L136.65,208 L134.55,208 L134.55,216 Z M128.25,218 L138.75,218 
@@ -283,30 +315,27 @@ const Upload = () => {
 
       {/* Right column: Uploaded files */}
       <div className="w-1/2 aspect-square bg-gray-200 rounded-lg p-4 flex flex-col">
-        <h2 className="text-lg font-semibold text-gray-700 mb-2">
-          Uploaded Files
-        </h2>
-        <div className="flex-1 overflow-y-auto">
-          {/* Render multiple <File> items here. For now, just an example. */}
-          <File fileName="File1.png" fileId="123" />
-          <File fileName="File2.pdf" fileId="123"/>
-          <File fileName="File3.jpg" fileId="123"/>
-          <File fileName="File1.png" fileId="123"/>
-          <File fileName="File1.png" fileId="123"/>
-          <File fileName="File1.png" fileId="123"/>
-          <File fileName="File1.png"fileId="123"/>
-          <File fileName="File1.png" fileId="123"/>
-          <File fileName="File1.png" fileId="123"/>
-          <File fileName="File1.png" fileId="123"/>
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">
+            Uploaded Files
+          </h2>
+          <div className="flex-1 overflow-y-auto">
+            {files.map((file) => (
+              <File
+                key={file.id}
+                fileName={file.name}
+                fileId={file.id}
+                locked={file.password}
+              />
+            ))}
+          </div>
         </div>
-      </div>
     </div>
      {/* Reusable Modal */}
       <Modal
         title={modalTitle}        // e.g. "Lock Space" or "Unlock Space"
         decisionText={decisionText}   // e.g. "Lock" or "Unlock"
         isOpen={showModal}
-        onClose={handleCloseModal}
+        onClose={() => setShowModal(false)}
       >
         {/* 
           The content inside the modal. 
@@ -339,13 +368,13 @@ const Upload = () => {
           </div>
           <div className="flex justify-end space-x-2 mt-4">
             <button
-              onClick={handleCloseModal}
+              onClick={() => setShowModal(false)}
               className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
             >
               Cancel
             </button>
             <button
-              onClick={handleSubmit}
+              onClick={handleLockUnlock}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
               {decisionText}
