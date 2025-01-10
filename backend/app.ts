@@ -10,6 +10,7 @@ import fileRoutes from "./routes/fileRoutes";
 import spaceRoutes from "./routes/spaceRoutes";
 import shareRoutes from "./routes/shareRoutes";
 import adminRoutes from "./routes/adminRoutes";
+import cors from "cors";
 
 // Load environment variables from the project root
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -24,6 +25,18 @@ const app: Application = express();
 app.use(express.json());
 app.use(morgan("dev"));
 
+
+// Enable CORS
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Replace with your frontend's URL
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH","OPTIONS"], // Allowed HTTP methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+    credentials: true, // Allow cookies and credentials
+  })
+);
+
+
 // Defined routes
 app.use("/api/users", userRoutes);
 app.use("/api/admins", adminRoutes)
@@ -31,6 +44,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/spaces", spaceRoutes);
 app.use("/api/shares", shareRoutes);
+
 
 
 // Function to get the local IP address

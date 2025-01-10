@@ -355,7 +355,7 @@ export const getAllSpaces = async (req: Request, res: Response): Promise<void> =
                 where: { createdById: userId },
                 include: {
                     createdBy: {
-                        select: { id: true, username: true }, // Include creator's basic details
+                        select: { username: true }, // Include creator's basic details
                     },
                 },
             });

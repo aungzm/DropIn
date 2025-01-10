@@ -7,63 +7,134 @@ const api = axios.create({
   },
 });
 
-// Interceptor to handle invalid access tokens
-interface ErrorResponse {
-    response?: {
-        status: number;
-        data?: {
-            error?: string;
-        };
-    };
-    config: any;
-}
+// Helper functions to handle token storage
+const getAccessToken = () => localStorage.getItem("accessToken");
+const setAccessToken = (token: string) => localStorage.setItem("accessToken", token);
+const getRefreshToken = () => localStorage.getItem("refreshToken");
+const removeTokens = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+};
 
-interface RefreshTokenResponse {
-    data: {
-        accessToken: string;
-    };
-}
+// Helper function to check if a JWT token is valid
+const isTokenValid = (token: string) => {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1])); // Decode JWT payload
+    return payload.exp * 1000 > Date.now(); // Compare expiry time with current time
+  } catch {
+    return false; // Invalid token
+  }
+};
 
+// Queue to handle multiple failed requests while refreshing the token
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (token) {
+      prom.resolve(token);
+    } else {
+      prom.reject(error);
+    }
+  });
+  failedQueue = [];
+};
+
+// External navigation function (to be provided by React components)
+let navigate: (path: string) => void = () => {
+  console.error("Navigation function is not set. Ensure it is provided via setNavigateFunction.");
+};
+
+export const setNavigateFunction = (navFn: (path: string) => void) => {
+  navigate = navFn;
+};
+
+// Request interceptor to attach the access token
+api.interceptors.request.use(
+  (config) => {
+    const accessToken = getAccessToken();
+    if (accessToken && isTokenValid(accessToken)) {
+      config.headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle invalid access tokens
 api.interceptors.response.use(
-    (response: any) => response,
-    async (error: ErrorResponse) => {
-        if (
-            error.response?.status === 401 && 
-            error.response?.data?.error === "Unauthorized: Invalid token"
-        ) {
-            // Attempt to refresh the token
-            const refreshToken = localStorage.getItem("refreshToken");
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
 
-            if (refreshToken) {
-                try {
-                    const response: RefreshTokenResponse = await axios.get(`http://localhost:5000/api/auth/access-token?refreshToken=${refreshToken}`, {
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                    });
+    // If the error is due to an invalid access token
+    if (
+      error.response?.status === 401 &&
+      error.response?.data?.error === "Unauthorized: Invalid token" &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true; // Prevent infinite retry loops
+      const refreshToken = getRefreshToken();
 
-                    const newAccessToken = response.data.accessToken;
+      if (refreshToken) {
+        if (!isRefreshing) {
+          isRefreshing = true;
 
-                    // Store the new accessToken and retry the failed request
-                    localStorage.setItem("accessToken", newAccessToken);
-                    error.config.headers["Authorization"] = `Bearer ${newAccessToken}`;
-                    return api.request(error.config);
-                } catch (refreshError: any) {
-                    if (refreshError.response?.data?.error === "Invalid token") {
-                        // Refresh token is invalid; redirect to login
-                        localStorage.removeItem("accessToken");
-                        localStorage.removeItem("refreshToken");
-                        window.location.href = "/login"; // Redirect to login page
-                    }
-                }
-            } else {
-                // No refreshToken; redirect to login
-                window.location.href = "/login";
-            }
+          try {
+            // Refresh the access token using the refresh token
+            const response = await axios.post(
+              "http://localhost:5000/api/auth/access-token",
+              { refreshToken },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            const newAccessToken = response.data.accessToken;
+
+            // Save the new access token
+            setAccessToken(newAccessToken);
+            processQueue(null, newAccessToken);
+
+            isRefreshing = false;
+
+            // Retry the original request with the new access token
+            originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+            return api.request(originalRequest);
+          } catch (refreshError) {
+            // If refreshing fails, clear tokens and redirect to login
+            processQueue(refreshError, null);
+            removeTokens();
+            navigate('/login');
+            isRefreshing = false;
+            return Promise.reject(refreshError);
+          }
         }
 
-        return Promise.reject(error);
+        // Queue failed requests while the token is being refreshed
+        return new Promise((resolve, reject) => {
+          failedQueue.push({
+            resolve: (token: string) => {
+              originalRequest.headers["Authorization"] = `Bearer ${token}`;
+              resolve(api.request(originalRequest));
+            },
+            reject: (err: any) => {
+              reject(err);
+            },
+          });
+        });
+      } else {
+        // No refresh token available, redirect to login
+        removeTokens();
+        navigate('/login');
+      }
     }
+
+    return Promise.reject(error);
+  }
 );
 
 export default api;
