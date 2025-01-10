@@ -218,13 +218,24 @@ export const lockSpace = async (req: Request, res: Response): Promise<void> => {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        const updatedSpace = await prisma.space.update({
-            where: { id: spaceId },
-            data: { password: hashedPassword },
+        const space = await prisma.space.findFirst({
+            where: {
+            id: spaceId,
+            password: { not: null },
+            },
         });
 
-        res.status(200).json({ message: "Space locked successfully!", space: updatedSpace });
+        if (space) {
+            res.status(400).json({ error: "Space is already locked" });
+            return;
+        } else {
+            await prisma.space.update({
+                where: { id: spaceId },
+                data: { password: hashedPassword },
+            });
+        }
+        
+        res.status(200).json({ message: "Space locked successfully!"});
     } catch (error) {
         console.error("Error locking space:", error);
         res.status(500).json({ error: "Internal server error" });
