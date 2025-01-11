@@ -29,6 +29,10 @@ const Dashboard = () => {
         fetchSpaces();
     }, []);
 
+    const handleAddSpace = (newSpace: any) => {
+        setSpaces((prevSpaces) => [...prevSpaces, newSpace]);
+    };
+
     return (
         <div className="min-h-screen bg-white-100">
             <Navbar />
@@ -55,7 +59,7 @@ const Dashboard = () => {
                               }}
                         />
                     ))}
-                <AddSpace />
+                <AddSpace onSpaceAdded={handleAddSpace}/>
             </div>
         </div>
     );

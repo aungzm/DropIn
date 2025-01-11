@@ -69,13 +69,22 @@ export const createSpace = async (req: Request, res: Response): Promise<void> =>
     try {
         const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
-        const newSpace = await prisma.space.create({
+        const createdSpace = await prisma.space.create({
             data: {
                 createdById: userId,
                 uploadedById: userId,
                 password: hashedPassword,
                 name: spaceName,
             },
+        });
+
+        const newSpace = await prisma.space.findFirst({ 
+            where: { id: createdSpace.id },
+            include: { 
+                createdBy: {
+                    select: { id: true, username: true},
+                }
+            }, 
         });
 
         res.status(201).json({ message: "Space created successfully!", space: newSpace });
