@@ -2,14 +2,14 @@ import React from 'react';
 import { useState } from 'react';
 import Modal from './Modal';
 import api from '../api/api';
+import { useEffect } from 'react';
 
 interface FileCardProps {
   className?: string;
   fileId: string;
   fileName: string;
   locked: boolean;
-  onSettingsClick?: () => void;
-  onDownloadClick?: () => void;
+  progress: number;
   onRenameSucess: (newName: string) => void;
   onDeleteSuccess: (deletedFileId: string) => void;
 }
@@ -18,7 +18,9 @@ const FileCard: React.FC<FileCardProps> = ({
   fileId,
   fileName,
   locked,
+  progress, 
   onRenameSucess,
+  onDeleteSuccess
 }) => {
   // Ext file icon mapping
   const fileIconMap: { [key: string]: string } = {
@@ -58,12 +60,12 @@ const FileCard: React.FC<FileCardProps> = ({
   
   // Handler for opening the modal
   const handleUnlockClick = () => {
-    setModalMode("lock");
+    setModalMode("unlock");
     setShowModal(true);
   };
 
     const handleLockClick = () => {
-      setModalMode("unlock");
+      setModalMode("lock");
       setShowModal(true);
     };
   
@@ -75,20 +77,25 @@ const FileCard: React.FC<FileCardProps> = ({
     };
   
     // Single function to handle "Lock" or "Unlock" based on modalMode
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (password !== repeatPassword) {
       alert("Passwords do not match!");
       return;
     }
 
-    if (modalMode === "lock") {
-      // Lock logic
-      console.log("Locking space with password");
-      // api call for lock here
-    } else {
-      // Unlock logic
-      console.log("Unocking space with password");
-      // api call for unlock here
+    try {
+      if (modalMode === "lock") {
+        await api.patch(`/files/${fileId}/lock`, { password, repeatPassword });
+        setIsFileLocked(true);
+        setModalMode("");
+      } else {
+        await api.patch(`/files/${fileId}/unlock`, { password, repeatPassword });
+        setIsFileLocked(false);
+        setModalMode("");
+      }
+    } catch (error) {
+      console.error('Error during ', modalMode, error);
+      alert('Failed to update the file lock status. Please try again.');
     }
 
     // Close modal
@@ -133,7 +140,13 @@ const FileCard: React.FC<FileCardProps> = ({
   }
 
   const onDeleteClick = () => {
-    console.log("Deleting file", fileId);
+    try {
+      api.delete(`/files/${fileId}`).then(() => {
+        onDeleteSuccess(fileId);
+      });
+    } catch (error) {
+      console.error('Error during deletion:', error);
+    }
   };
 
   // Decide what text to show in the modal:
@@ -328,11 +341,14 @@ const FileCard: React.FC<FileCardProps> = ({
         {/* Middle: File info and status */}
         <div className="flex-1">
           <h2 className="text-lg font-semibold text-gray-800">{fileName}</h2>
-          <p className="text-sm text-gray-500">"Status"</p>
+          <p className="text-sm text-gray-500">{progress}% Completed</p>
           {/* Progress Bar */}
           <div className="relative w-full h-2 mt-2 bg-gray-200 rounded-full">
             {/* If you want dynamic progress, change w-full to w-[someNumber]% */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-blue-600 rounded-full" />
+            <div
+              className="absolute top-0 left-0 h-2 bg-blue-600 rounded-full"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
       </div>
@@ -370,7 +386,10 @@ const FileCard: React.FC<FileCardProps> = ({
           </div>
           <div className="flex justify-end space-x-2 mt-4">
             <button
-              onClick={handleCloseModal}
+              onClick={() => {
+                handleCloseModal();
+                setModalMode("");
+              }}
               className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
             >
               Cancel

@@ -15,6 +15,7 @@ const Upload = () => {
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
   const [files, setFiles] = useState<any[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   // "lock" or "unlock"
   const [modalMode, setModalMode] = useState("lock");
@@ -26,21 +27,27 @@ const Upload = () => {
     // Handler for opening the modal
     useEffect(() => {
       const fetchSpaceDetails = async () => {
-          try {
-              const response = await api.get(`/spaces/${spaceId}`);
-              const space = response.data.space;
-  
-              setSpaceName(space.name);
-              setIsSpaceLocked(space.password === "Yes"); // Convert "Yes"/"No" to boolean
-              setFiles(space.files || []);
-          } catch (error) {
-              console.error("Error fetching space details:", error);
-              navigate("/dashboard"); // Redirect if space is not found
-          }
+        try {
+          const response = await api.get(`/spaces/${spaceId}`);
+          const space = response.data.space;
+    
+          setSpaceName(space.name);
+          setIsSpaceLocked(space.password === "Yes");
+    
+          // Add progress: 100 to already uploaded files
+          const fetchedFiles = (space.files || []).map((file) => ({
+            ...file,
+            progress: 100, // Mark fetched files as fully uploaded
+          }));
+          setFiles(fetchedFiles);
+        } catch (error) {
+          console.error("Error fetching space details:", error);
+          navigate("/dashboard"); // Redirect if space is not found
+        }
       };
-  
+    
       fetchSpaceDetails();
-  }, [spaceId, navigate]);
+    }, [spaceId, navigate]);
   
 
     const handleLockUnlock = async () => {
@@ -95,6 +102,9 @@ const Upload = () => {
     }
   };
 
+
+  
+
   const handleDownloadAll = async () => {
     try {
       // Make an API call to get the ZIP file
@@ -116,6 +126,104 @@ const Upload = () => {
       alert('Failed to download all files. Please try again.');
     }
   };
+
+  const handleUpload = () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.multiple = true;
+    fileInput.click();
+  
+    fileInput.addEventListener("change", () => {
+      if (!fileInput.files) return;
+      handleUploadFiles(fileInput.files);
+    });
+  };
+  
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleUploadFiles = async (fileList: FileList) => {
+    if (!fileList) return;
+  
+    // The same core logic here
+    const uploadProgress: { [key: string]: number } = {};
+  const lastUpdateTime = {};
+
+  Array.from(fileList).forEach((file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (spaceId) {
+      formData.append("spaceId", spaceId);
+    } else {
+      console.error("spaceId is undefined");
+      return;
+    }
+
+    // Initialize progress and timestamp
+    uploadProgress[file.name] = 0;
+    lastUpdateTime[file.name] = Date.now();
+
+    // Temporary file in state
+    setFiles((prevFiles) => [
+      ...prevFiles,
+      { id: `temp-${file.name}`, name: file.name, progress: 0 },
+    ]);
+
+    // Upload request
+    api
+      .post(`/files`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          // Throttle and update progress
+          const total = progressEvent.total || progressEvent.loaded;
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / total
+          );
+
+          const now = Date.now();
+          if (
+            now - lastUpdateTime[file.name] >= 3000 ||
+            percentCompleted === 100
+          ) {
+            lastUpdateTime[file.name] = now;
+            uploadProgress[file.name] = percentCompleted;
+
+            setFiles((prevFiles) =>
+              prevFiles.map((f) =>
+                f.name === file.name
+                  ? { ...f, progress: percentCompleted }
+                  : f
+              )
+            );
+          }
+        },
+      })
+      .then((response) => {
+        const uploadedFile = response.data.file;
+        // Replace temp file
+        setFiles((prevFiles) =>
+          prevFiles.map((f) =>
+            f.name === file.name ? { ...uploadedFile, progress: 100 } : f
+          )
+        );
+      })
+      .catch((error) => {
+        console.error("Error uploading file:", error);
+        alert(`Failed to upload file: ${file.name}. Please try again.`);
+      });
+  });
+};
+
+  
+  
+  
   
   // Decide what text to show in the modal:
   const modalTitle = modalMode === "lock" ? "Lock Space" : "Unlock Space";
@@ -329,7 +437,20 @@ const Upload = () => {
       {/* Main area */}
     <div className="flex flex-row items-start gap-8 px-6 py-6">
       {/* Left column: Drag-and-drop area */}
-      <div className="w-1/2 aspect-square rounded-lg border-2 border-dashed border-blue-600 p-8 flex flex-col items-center justify-center text-center">
+      <div
+        className="w-1/2 aspect-square rounded-lg border-2 border-dashed border-blue-600 p-8 flex flex-col items-center justify-center text-center"
+        onDragOver={(e) => {
+          e.preventDefault();
+          // Optionally e.dataTransfer.dropEffect = "copy";
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const droppedFiles = e.dataTransfer.files;
+          if (droppedFiles && droppedFiles.length > 0) {
+            handleUploadFiles(droppedFiles);
+          }
+        }}
+      >
         {/* Upload icon (just an example) */}
         <svg
           className="w-10 h-10 text-blue-600"
@@ -343,7 +464,17 @@ const Upload = () => {
         </svg>
         
         {/* Browse button */}
-        <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+        <input
+          type="file"
+          multiple
+          className="hidden"
+          id="fileInput"
+          onChange={(e) => e.target.files && handleUploadFiles(e.target.files)}
+        />
+        <button
+          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          onClick={() => document.getElementById('fileInput')?.click()}
+        >
           Browse
         </button>
         
@@ -359,23 +490,24 @@ const Upload = () => {
           <div className="flex-1 overflow-y-auto">
             {files.map((file) => (
               <File
-                key={file.id}
-                fileName={file.name}
-                fileId={file.id}
-                locked={file.password}
-                onDeleteSuccess={(deletedFileId) => {
-                  const updatedFiles = files.filter((f) => f.id !== deletedFileId);
-                  setFiles(updatedFiles);
-                }} // Remove the file from the map
-                onRenameSucess={(newName) => {
-                  const updatedFiles = files.map((f) => {
-                    if (f.id === file.id) {
-                      return { ...f, name: newName };
-                    }
-                    return f;
-                  });
-                  setFiles(updatedFiles);
-                }} // Edit the name in the map
+              key={file.id}
+              fileName={file.name}
+              fileId={file.id}
+              locked={file.password === "Yes"}
+              progress={file.progress} 
+              onDeleteSuccess={(deletedFileId) => {
+                const updatedFiles = files.filter((f) => f.id !== deletedFileId);
+                setFiles(updatedFiles);
+              }} // Remove the file from the map
+              onRenameSucess={(newName) => {
+                const updatedFiles = files.map((f) => {
+                if (f.id === file.id) {
+                  return { ...f, name: newName };
+                }
+                return f;
+                });
+                setFiles(updatedFiles);
+              }} // Edit the name in the map
               />
             ))}
           </div>

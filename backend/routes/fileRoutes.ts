@@ -38,7 +38,7 @@ router.patch(
     
     [
         param("fileId", "File ID is required").not().isEmpty(),
-        body("password", "Password is required to lock the file").isBoolean(),
+        body("password", "Password is required to lock the file").isString(),
         body("repeatPassword", "Repeat Password should not be blank").isString()
     ],
     authenticateToken,
