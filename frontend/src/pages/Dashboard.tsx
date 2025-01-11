@@ -3,13 +3,13 @@ import Navbar from '../components/Navbar';
 import Space from '../components/Space';
 import AddSpace from '../components/AddSpace';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/api'; // Assuming you have a configured Axios instance
+import api from '../api/api'; 
 
 const Dashboard = () => {
     const navigate = useNavigate(); 
-    const [spaces, setSpaces] = useState<any[]>([]); // State to store spaces
-    const [loading, setLoading] = useState<boolean>(true); // Loading state
-    const [error, setError] = useState<string | null>(null); // Error state
+    const [spaces, setSpaces] = useState<any[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null); 
 
     // Fetch spaces from the API
     useEffect(() => {
@@ -49,7 +49,11 @@ const Dashboard = () => {
                             spaceName={space.name}
                             onClickSpace={() => navigate(`/upload/${space.id}`)}
                             creator={space.createdBy.username}
-                            onDeleteSpace={() => api.delete(`/spaces/${space.id}`)}
+                            onDeleteSpaceSucess={() => {
+                                    setSpaces((prevSpaces) =>
+                                        prevSpaces.filter((s) => s.id !== space.id)
+                                    );
+                                }}
                             onRenameSuccess={(newName) => {
                                 setSpaces((prevSpaces) =>
                                   prevSpaces.map((s) =>

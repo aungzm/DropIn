@@ -5,14 +5,15 @@ interface SpaceProps {
   spaceId: string;
   spaceName: string;
   creator: string;
-  onDeleteSpace: () => void;
+  onDeleteSpaceSucess: () => void;
   onClickSpace: () => void;
   onRenameSuccess: (newName: string) => void; // New callback prop
 }
 
-const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpace, onClickSpace, onRenameSuccess }) => {
+const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpaceSucess, onClickSpace, onRenameSuccess }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -33,9 +34,10 @@ const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpac
   const handleRename = (e: React.FormEvent) => {
     e.preventDefault();
     if (newSpaceName.trim()) {
-      onRenameSpace(newSpaceName);
-      setShowRenameModal(false);
-      onRenameSuccess(newSpaceName); // Notify parent about the updated name
+      api.put(`/spaces/${spaceId}`, { newSpaceName }).then(() => {
+        setShowRenameModal(false);
+        onRenameSuccess(newSpaceName); // Notify parent about the updated name
+      });
       setNewSpaceName('');
     }
   };
@@ -45,7 +47,10 @@ const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpac
   }
 
   const handlDelete = () => {
-    onDeleteSpace();
+    api.delete(`/spaces/${spaceId}`).then(() => {
+      onDeleteSpaceSucess();
+      setShowDeleteModal(false);
+    });
   }
 
   useEffect(() => {
@@ -98,7 +103,11 @@ const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpac
             </li>
             <li>
               <button
-                onClick={handlDelete}
+                onClick={
+                  () => {
+                    setShowDeleteModal(true);
+                    setDropdownOpen(false);
+                }}
                 className="block w-full text-start px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
               >
                 Delete
@@ -116,7 +125,7 @@ const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpac
       {showRenameModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <h3 className="text-lg font-semibold mb-4">Rename Space</h3>
+            <h3 className="text-lg text-center font-semibold mb-4">Rename Space</h3>
             <form onSubmit={handleRename}>
               <input
                 type="text"
@@ -141,6 +150,32 @@ const Space: React.FC<SpaceProps> = ({ spaceId, spaceName, creator, onDeleteSpac
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 className="text-lg font-semibold mb-4 text-center">Delete Space</h3>
+            <h4 className="text-sm text-gray-500 mb-5 text-center">Are you sure you want to delete {spaceName}?</h4>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg w-1/2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg w-1/2"
+                  onClick={handlDelete}
+                >
+                  Delete
+                </button>
+              </div>
           </div>
         </div>
       )}
