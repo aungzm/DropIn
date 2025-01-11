@@ -12,6 +12,8 @@ const Upload = () => {
   const [isSpaceLocked, setIsSpaceLocked] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [spaceName, setSpaceName] = useState("Loading...");
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState("");
   const [files, setFiles] = useState<any[]>([]);
 
   // "lock" or "unlock"
@@ -30,8 +32,6 @@ const Upload = () => {
   
               setSpaceName(space.name);
               setIsSpaceLocked(space.password === "Yes"); // Convert "Yes"/"No" to boolean
-              console.log("Space space password:", space.password);
-              console.log("Space Locked:", space.password === "Yes"); // Log converted value
               setFiles(space.files || []);
           } catch (error) {
               console.error("Error fetching space details:", error);
@@ -82,6 +82,41 @@ const Upload = () => {
       }
   };
 
+  const handleRename = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("new space name:", newSpaceName);
+    if (newSpaceName.trim()) {
+      const response  = api.put(`/spaces/${spaceId}`, { newSpaceName }).then(() => {
+        setShowRenameModal(false);
+        setSpaceName(newSpaceName);
+      });
+      console.log(response);
+      setNewSpaceName('');
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    try {
+      // Make an API call to get the ZIP file
+      const response = await api.get(`/spaces/${spaceId}/downloadAll`, {
+        responseType: 'blob', 
+      });
+  
+      // Create a URL for the downloaded blob
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `space-${spaceId}.zip`); // Set the download file name
+      document.body.appendChild(link);
+      link.click(); // Trigger the download
+      link.remove(); 
+      window.URL.revokeObjectURL(url); 
+    } catch (error) {
+      console.error('Error downloading all files:', error);
+      alert('Failed to download all files. Please try again.');
+    }
+  };
+  
   // Decide what text to show in the modal:
   const modalTitle = modalMode === "lock" ? "Lock Space" : "Unlock Space";
   const decisionText = modalMode === "lock" ? "Lock" : "Unlock";
@@ -110,7 +145,7 @@ const Upload = () => {
 
         {/* Space name */}
         <h1 className="text-xl font-semibold text-gray-800">
-          My Newly Created Space
+          {spaceName}
         </h1>
         {/* Unlock SVG */}
         { isSpaceLocked && (<button
@@ -168,6 +203,7 @@ const Upload = () => {
         <button
           className="text-blue-700 hover:text-blue-800"
           title="Download"
+          onClick={handleDownloadAll}
         >
           <svg
             width="20"
@@ -195,8 +231,10 @@ const Upload = () => {
 
         {/* Edit */}
         <button
-          className="text-blue-700 hover:text-blue-800"
-          title="Edit"
+          onClick={() => {
+            setNewSpaceName(spaceName);
+            setShowRenameModal(true);
+          }}
         >
           <svg
             width="20"
@@ -325,6 +363,19 @@ const Upload = () => {
                 fileName={file.name}
                 fileId={file.id}
                 locked={file.password}
+                onDeleteSuccess={(deletedFileId) => {
+                  const updatedFiles = files.filter((f) => f.id !== deletedFileId);
+                  setFiles(updatedFiles);
+                }} // Remove the file from the map
+                onRenameSucess={(newName) => {
+                  const updatedFiles = files.map((f) => {
+                    if (f.id === file.id) {
+                      return { ...f, name: newName };
+                    }
+                    return f;
+                  });
+                  setFiles(updatedFiles);
+                }} // Edit the name in the map
               />
             ))}
           </div>
@@ -382,6 +433,38 @@ const Upload = () => {
           </div>
         </div>
       </Modal>
+      {/* Rename Modal */}
+      {showRenameModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 className="text-lg text-center font-semibold mb-4">Rename Space</h3>
+            <form onSubmit={handleRename}>
+              <input
+                type="text"
+                placeholder="New Space Name"
+                value={newSpaceName}
+                onChange={(e) => setNewSpaceName(e.target.value)}
+                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"
+              />
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowRenameModal(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg w-1/2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg w-1/2"
+                >
+                  Update
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

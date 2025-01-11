@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import Modal from './Modal';
+import api from '../api/api';
 
 interface FileCardProps {
   className?: string;
@@ -9,14 +10,15 @@ interface FileCardProps {
   locked: boolean;
   onSettingsClick?: () => void;
   onDownloadClick?: () => void;
-  onEditClick?: () => void;
-  onDeleteClick?: () => void;
+  onRenameSucess: (newName: string) => void;
+  onDeleteSuccess: (deletedFileId: string) => void;
 }
 
 const FileCard: React.FC<FileCardProps> = ({
   fileId,
   fileName,
   locked,
+  onRenameSucess,
 }) => {
   // Ext file icon mapping
   const fileIconMap: { [key: string]: string } = {
@@ -35,23 +37,26 @@ const FileCard: React.FC<FileCardProps> = ({
     'jpeg': '/src/assets/jpeg.png',
   };
 
-  const getFileIcon = (fileName: string) => {
-    const ext = fileName.split('.').pop()?.toLowerCase() || 'default';
-    return fileIconMap[ext] || fileIconMap['default'];
-  };
+  
 
-  const fileIcon = getFileIcon(fileName);
+  
   const [showModal, setShowModal] = useState(false);
-  const [isFileLocked, setIsFileLocked] = useState(false);
-  fileId = "123";
+  const [isFileLocked, setIsFileLocked] = useState(locked);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [newFileName, setNewFileName] = useState(fileName.split('.').shift() || ''); // File name without extension
+  const fileExtension = fileName.split('.').pop() || ''; // File extension
+  const getFileIcon = () => {
+    return fileIconMap[fileExtension] || fileIconMap['default'];
+  };
   // "lock" or "unlock"
   const [modalMode, setModalMode] = useState(locked ? "lock" : "unlock");
+  const fileIcon = getFileIcon();
 
   // Password fields
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   
-    // Handler for opening the modal
+  // Handler for opening the modal
   const handleUnlockClick = () => {
     setModalMode("lock");
     setShowModal(true);
@@ -90,13 +95,42 @@ const FileCard: React.FC<FileCardProps> = ({
     handleCloseModal();
   };
 
-  const onDownloadClick = () => {
-    console.log("Downloading file", fileId);
+  const onDownloadClick = async () => {
+    try {
+      const response = await api.get(`/files/${fileId}/download`, {
+        responseType: 'blob', // Ensure response is treated as binary data
+      });
+  
+      // Create a download link and trigger a click
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName); 
+      document.body.appendChild(link);
+      link.click();
+  
+      // Clean up the URL object and link element
+      window.URL.revokeObjectURL(url);
+      link.remove();
+    } catch (error) {
+      console.error('Error during downloading:', error);
+      alert('Failed to download the file. Please try again.');
+    }
   };
+  
 
-  const onEditClick = () => {
-    console.log("Editing file", fileId);
-  };
+  const handleRename = (e: React.FormEvent) => {
+    setNewFileName(newFileName.trim());
+    e.preventDefault();
+    try { 
+      api.put(`/files/${fileId}`, { newFileName }).then(() => {
+        onRenameSucess(newFileName + '.' + fileExtension);
+      });
+    } catch (error) {
+      console.error('Error during renaming:', error);
+    }
+    setShowRenameModal(false);
+  }
 
   const onDeleteClick = () => {
     console.log("Deleting file", fileId);
@@ -186,7 +220,7 @@ const FileCard: React.FC<FileCardProps> = ({
 
         {/* Edit */}
         <button
-          onClick={onEditClick}
+          onClick={() => setShowRenameModal(true)}
           className="text-blue-700 hover:text-blue-800"
           title="Edit"
         >
@@ -349,7 +383,39 @@ const FileCard: React.FC<FileCardProps> = ({
             </button>
           </div>
         </div>
-      </Modal>        
+      </Modal>
+      {/* Rename Modal */}
+      {showRenameModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 className="text-lg text-center font-semibold mb-4">Rename Space</h3>
+            <form onSubmit={handleRename}>
+              <input
+                type="text"
+                placeholder="New Space Name"
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"
+              />
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowRenameModal(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg w-1/2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg w-1/2"
+                >
+                  Update
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}        
     </div>
   );
 };
