@@ -16,7 +16,9 @@ router.post(
     [
         param("fileId", "File ID is required").notEmpty(),
         body("maxDownloads", "Max Downloads is required").optional().isInt(),
-        body("expiresAt", "Time Limit is in minutes").optional().isISO8601()
+        body("expiresAt", "Time Limit is in minutes")
+            .optional({ nullable: true })
+            .isISO8601()
     ],
     addFileShareLink
 );
@@ -29,7 +31,9 @@ router.patch(
     [
         param("fileId", "File ID is required").notEmpty(),
         body("maxDownloads", "Max Downloads is required").optional().isInt(),
-        body("expiresAt", "Time Limit is in minutes").optional().isISO8601(),
+        body("expiresAt", "Time Limit is in minutes")
+            .optional({ nullable: true })
+            .isISO8601()
     ],
     modifyFileShareLink
 );
@@ -41,7 +45,9 @@ router.post(
     verifyAccountOwnershipOrAdmin,
     [
         param("spaceId", "Space ID is required").notEmpty(),
-        body("expiresAt", "Time Limit is in minutes").optional().isISO8601(),
+        body("expiresAt", "Time Limit is in minutes")
+            .optional({ nullable: true })
+            .isISO8601()
     ],
     addSpaceShareLink
 );
@@ -52,7 +58,9 @@ router.patch(
     verifyAccountOwnershipOrAdmin,
     [
         param("spaceId", "Space ID is required").notEmpty(),
-        body("expiresAt", "Time Limit is in minutes is required").optional().isISO8601(),
+        body("expiresAt", "Time Limit is in minutes")
+            .optional({ nullable: true })
+            .isISO8601()
     ],
     modifySpaceShareLink
 )
