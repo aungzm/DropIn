@@ -5,6 +5,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import api from "../api/api";
 import Modal from "../components/Modal";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -13,9 +15,14 @@ const Upload = () => {
   const [showModal, setShowModal] = useState(false);
   const [spaceName, setSpaceName] = useState("Loading...");
   const [showRenameModal, setShowRenameModal] = useState(false);
+  const [expiry, setExpiry] = useState<Date | null>(null);
+  const [newExpiry, setNewExpiry] = useState<Date | null>(null);
+  const [maxDownloads, setMaxDownloads] = useState<number | null>(null);
+  const [newMaxDownloads, setNewMaxDownloads] = useState<number | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
   const [files, setFiles] = useState<any[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
+  const [spaceShareUrl , setSpaceShareUrl] = useState("");
 
   // "lock" or "unlock"
   const [modalMode, setModalMode] = useState("lock");
@@ -28,9 +35,11 @@ const Upload = () => {
     useEffect(() => {
       const fetchSpaceDetails = async () => {
         try {
-          const response = await api.get(`/spaces/${spaceId}`);
-          const space = response.data.space;
-    
+          const space = (await api.get(`/spaces/${spaceId}`)).data.space;
+          const spaceLink = (await api.get(`/shares/space/${spaceId}`)).data.shareLink;
+          setExpiry(spaceLink.expiry);
+          setMaxDownloads(spaceLink.maxDownloads);
+          setSpaceShareUrl(spaceLink.url);
           setSpaceName(space.name);
           setIsSpaceLocked(space.password === "Yes");
     
@@ -100,10 +109,7 @@ const Upload = () => {
       console.log(response);
       setNewSpaceName('');
     }
-  };
-
-
-  
+  };  
 
   const handleDownloadAll = async () => {
     try {
@@ -126,28 +132,38 @@ const Upload = () => {
       alert('Failed to download all files. Please try again.');
     }
   };
+  
+  const handleCancelSpaceShare = async () => {
+    setShowShareModal(false);
+    setNewExpiry(null);
+    setNewMaxDownloads(null);
+  };
 
-  const handleUpload = () => {
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.multiple = true;
-    fileInput.click();
-  
-    fileInput.addEventListener("change", () => {
-      if (!fileInput.files) return;
-      handleUploadFiles(fileInput.files);
-    });
+  const handleDeleteSpaceShare = () => {
+    setShowShareModal(false);
+    setExpiry(null);
+    setMaxDownloads(null);
+    setSpaceShareUrl("");
   };
-  
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-  
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
+  const handleConfirmSpaceShare = async () => {
+    setShowShareModal(false);
+    setExpiry(newExpiry);
+    setMaxDownloads(newMaxDownloads);
+    setNewExpiry(null);
+    setMaxDownloads(null);
+    try {
+      const response = await api.post(`/shares/space/${spaceId}`, {
+        expiresAt: newExpiry,
+        // maxDownloads: newMaxDownloads,
+      });
+      alert("Space shared successfully!");
+      setSpaceShareUrl(response.data.shareLink.shareSecret);
+    } catch (error) {
+      console.error("Error sharing space:", error);
+      alert("Failed to share space. Please try again.");
+    }
+  }
 
   const handleUploadFiles = async (fileList: FileList) => {
     if (!fileList) return;
@@ -520,12 +536,6 @@ const Upload = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
       >
-        {/* 
-          The content inside the modal. 
-          Same fields for lock or unlock, 
-          just the text/endpoint changes 
-          depending on modalMode. 
-        */}
         <div className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -597,6 +607,65 @@ const Upload = () => {
           </div>
         </div>
       )}
+
+      {/* Share Modal */}
+{showShareModal && (
+  <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <h3 className="text-lg text-center font-semibold mb-4">Space Access</h3>
+      <form onSubmit={handleConfirmSpaceShare}>
+        {/* Max Downloads */}
+        <label className="block font-medium mb-1">Max Downloads</label>
+        <input
+          type="number"
+          placeholder="0"
+          value={maxDownloads ?? "unlimited"}
+          onChange={(e) => setNewMaxDownloads(e.target.value ? parseInt(e.target.value) : null)}
+          className="border rounded-lg px-3 py-2 mb-4 w-full"
+        />
+
+        {/* Expiry (Using React DatePicker) */}
+        <label className="block font-medium mb-1">Expiry</label>
+        <DatePicker
+          selected={expiry}
+          onChange={(date) => setNewExpiry(date || null)}
+          showTimeSelect            // Allows time selection
+          dateFormat="Pp"          // Formats date and time (e.g. 01/12/2025, 3:42 PM)
+          className="border rounded-lg px-3 py-2 mb-6 w-full"
+          placeholderText="Select date & time"
+        />
+
+        {/* Buttons */}
+        <div className="flex gap-4 justify-center">
+          {/* Delete */}
+          <button
+            type="button"
+            onClick={handleDeleteSpaceShare}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg w-1/3"
+          >
+            Delete
+          </button>
+          {/* Cancel */}
+          <button
+            type="button"
+            onClick={handleCancelSpaceShare}
+            className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg w-1/3"
+          >
+            Cancel
+          </button>
+          {/* Confirm */}
+          <button
+            type="submit"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-1/3"
+          >
+            Confirm
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
