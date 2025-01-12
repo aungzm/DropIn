@@ -7,6 +7,8 @@ import path from "path";
 import archiver from "archiver";
 import fs from "fs/promises";
 
+
+const MILLISECONDS_PER_MINUTE = 60000;
 const prisma = new PrismaClient();
 
 // Helper function to generate a random share secret
@@ -24,7 +26,9 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
     }
 
     const { fileId } = req.params;
-    const { maxDownloads } = req.body;
+    const { maxDownloads, timeLimit } = req.body;
+    
+    const expiresAt = timeLimit ? new Date(Date.now() + timeLimit * MILLISECONDS_PER_MINUTE) : null;
 
     try {
         const file = await prisma.file.findUnique({ where: { id: fileId } });
@@ -40,12 +44,49 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
                 fileId,
                 shareSecret,
                 maxDownloads,
+                expiresAt,
             },
         });
 
         res.status(201).json({ message: "File share link created successfully!", fileLink });
     } catch (error) {
         console.error("Error creating file share link:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+const modifyTimeFileShareLink = async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+        return;
+    }
+
+    const { fileId } = req.params;
+    const { timeLimit, maxDownloads } = req.body; // Time limit in minutes
+
+    const expiresAt = timeLimit ? new Date(Date.now() + timeLimit * MILLISECONDS_PER_MINUTE) : null;
+
+    try {
+        const file = await prisma.file.findFirst({ where: { id: fileId } });
+        if (!file) {
+            res.status(404).json({ error: "File not found" });
+            return;
+        }
+
+        const fileLink = await prisma.fileLink.findFirst({ where: { fileId } });
+        if (!fileLink) {
+            res.status(404).json({ error: "File link not found" });
+            return;
+        }
+
+        await prisma.fileLink.update({
+            where: { id: fileLink.id },
+            data: { expiresAt, maxDownloads },
+        });
+        res.status(200).json({ message: "File share link modified successfully!" });
+    } catch (error) {
+        console.error("Error modifying file share link:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -59,6 +100,9 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
     }
 
     const { spaceId } = req.params;
+    const { timeLimit } = req.body; // Time limit in minutes
+
+    const expiresAt = timeLimit ? new Date(Date.now() + timeLimit * MILLISECONDS_PER_MINUTE) : null;
     try {
         const space = await prisma.space.findUnique({ where: { id: spaceId } });
         if (!space) {
@@ -72,12 +116,50 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
             data: {
                 spaceId,
                 shareSecret,
+                expiresAt,
             },
         });
 
         res.status(201).json({ message: "Space share link created successfully!", spaceLink });
     } catch (error) {
         console.error("Error creating space share link:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const modifyTimeSpaceShareLink = async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+        return;
+    }
+    
+    const { spaceId } = req.params;
+    const { timeLimit } = req.body; // Time limit in minutes
+
+    try {
+        const space = await prisma.space.findFirst({ where: { id: spaceId } });
+        if (!space) {
+            res.status(404).json({ error: "Space not found" });
+            return;
+        }
+
+        const expiresAt = timeLimit ? new Date(Date.now() + timeLimit * MILLISECONDS_PER_MINUTE) : null;
+
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId } });
+        if (!spaceLink) {
+            res.status(404).json({ error: "Space link not found" });
+            return;
+        }
+
+        await prisma.spaceLink.update({
+            where: { id: spaceLink.id },
+            data: { expiresAt },
+        });
+        res.status(200).json({ message: "Space share link modified successfully!" });
+
+    } catch (error) {
+        console.error("Error modifying space share link:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -265,7 +347,10 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
             res.status(404).json({ error: "File not found" });
         }
         if (fileShare && fileShare.maxDownloads !== null) {
-            fileShare.downloads += 1;
+            await prisma.fileLink.update({ 
+                where: { id: fileShare.id },
+                data: { downloads: (fileShare.downloads ?? 0) + 1 }
+            });
             if (fileShare.downloads === fileShare.maxDownloads) {
                 await prisma.fileLink.delete({ where: { id: fileShare.id } });
             }
@@ -354,7 +439,11 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
         const fileShares = await prisma.fileLink.findMany({ where: { fileId: { in: files.map((file: { id: string }) => file.id) } } });
         for (const fileShare of fileShares) {
             if (fileShare.maxDownloads !== null) {
-                fileShare.downloads += 1;
+                await prisma.fileLink.update({ 
+                    where: { id: fileShare.id },
+                    data: { downloads: (fileShare.downloads ?? 0) + 1 }
+                });
+                
                 if (fileShare.downloads === fileShare.maxDownloads) {
                     await prisma.fileLink.delete({ where: { id: fileShare.id } });
                 }

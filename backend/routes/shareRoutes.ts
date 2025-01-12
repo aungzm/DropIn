@@ -2,7 +2,7 @@ import express from "express";
 import { body, param, query} from "express-validator";
 import { authenticateToken } from "../middlewares/authenticateToken";
 import { verifyAccountOwnershipOrAdmin } from "../middlewares/authMiddleware";
-import { addFileShareLink, addSpaceShareLink, removeFileShareLink, removeSpaceShareLink, verifyFileShareLink, verifySpaceShareLink, getSpaceInfoGuest, guestDownloadFile, guestDownloadAllFiles  } from "../controllers/shareController";
+import { addFileShareLink, addSpaceShareLink, removeFileShareLink, removeSpaceShareLink, verifyFileShareLink, verifySpaceShareLink, getSpaceInfoGuest, guestDownloadFile, guestDownloadAllFiles, modifyTimeSpaceShareLink  } from "../controllers/shareController";
 
 const router = express.Router();
 
@@ -13,9 +13,23 @@ router.post(
     verifyAccountOwnershipOrAdmin,
     [
         param("fileId", "File ID is required").notEmpty(),
-        body("maxDownloads", "Max Downloads is required").isInt().custom(value => value !== 0 && value >= -1),
+        body("maxDownloads", "Max Downloads is required").optional().isInt(),
+        body("timeLimit", "Time Limit is in minutes").optional().isInt(),
     ],
     addFileShareLink
+);
+
+// Route to update the time limit and max downloads of a file share link
+router.patch(
+    "/file/:fileId",
+    authenticateToken,
+    verifyAccountOwnershipOrAdmin,
+    [
+        param("fileId", "File ID is required").notEmpty(),
+        body("maxDownloads", "Max Downloads is required").optional().isInt(),
+        body("timeLimit", "Time Limit is in minutes").optional().isInt(),
+    ],
+    modifyTimeSpaceShareLink
 );
 
 // Route for adding a space share link
@@ -25,9 +39,21 @@ router.post(
     verifyAccountOwnershipOrAdmin,
     [
         param("spaceId", "Space ID is required").notEmpty(),
+        body("timeLimit", "Time Limit is in minutes").optional().isInt(),
     ],
     addSpaceShareLink
 );
+
+router.patch(
+    "/space/:spaceId",
+    authenticateToken,
+    verifyAccountOwnershipOrAdmin,
+    [
+        param("spaceId", "Space ID is required").notEmpty(),
+        body("timeLimit", "Time Limit is in minutes is required").optional().isInt(),
+    ],
+    modifyTimeSpaceShareLink
+)
 
 // Route for removing a file share link
 router.delete(
