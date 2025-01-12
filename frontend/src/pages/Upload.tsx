@@ -7,6 +7,7 @@ import api from "../api/api";
 import Modal from "../components/Modal";
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import LinkModal from "../components/LinkModal";
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const Upload = () => {
   const [newSpaceName, setNewSpaceName] = useState("");
   const [files, setFiles] = useState<any[]>([]);
   const [spaceShareUrl , setSpaceShareUrl] = useState("");
+  const [showLinkModal, setShowLinkModal] = useState(false);
 
   // "lock" or "unlock"
   const [modalMode, setModalMode] = useState("lock");
@@ -179,21 +181,25 @@ const Upload = () => {
 
   const handleConfirmSpaceShare = async () => {
     setShowShareModal(false);
-    setExpiry(newExpiry);
-    setMaxDownloads(newMaxDownloads);
+    if (newExpiry !== expiry || newMaxDownloads !== maxDownloads) {
+      setExpiry(newExpiry);
+      setMaxDownloads(newMaxDownloads);
+      try {
+        const response = await api.post(`/shares/space/${spaceId}`, {
+          expiresAt: newExpiry,
+          // maxDownloads: newMaxDownloads,
+        });
+        setSpaceShareUrl(response.data.url);
+        setShowLinkModal(true);
+      } catch (error) {
+        console.error("Error sharing space:", error);
+        alert("Failed to share space. Please try again.");
+      }
+    } else {
+      setShowLinkModal(true); // Show the existing link
+    }    
     setNewExpiry(null);
     setMaxDownloads(null);
-    try {
-      const response = await api.post(`/shares/space/${spaceId}`, {
-        expiresAt: newExpiry,
-        // maxDownloads: newMaxDownloads,
-      });
-      alert("Space shared successfully!");
-      setSpaceShareUrl(response.data.url);
-    } catch (error) {
-      console.error("Error sharing space:", error);
-      alert("Failed to share space. Please try again.");
-    }
   }
 
   const handleUploadFiles = async (fileList: FileList) => {
@@ -699,6 +705,12 @@ const Upload = () => {
               </div>
             </div>
           )}
+          {/* Link Modal */}
+          <LinkModal
+        showLinkModal={showLinkModal}
+        shareUrl={spaceShareUrl}
+        onClose={() => setShowLinkModal(false)}
+      />
     </div>
   );
 };
