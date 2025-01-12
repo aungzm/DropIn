@@ -7,7 +7,6 @@ import api from "../api/api";
 import Modal from "../components/Modal";
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { set } from "react-datepicker/dist/date_utils";
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -190,7 +189,7 @@ const Upload = () => {
         // maxDownloads: newMaxDownloads,
       });
       alert("Space shared successfully!");
-      setSpaceShareUrl(response.data.shareLink.shareSecret);
+      setSpaceShareUrl(response.data.url);
     } catch (error) {
       console.error("Error sharing space:", error);
       alert("Failed to share space. Please try again.");

@@ -164,7 +164,7 @@ const FileCard: React.FC<FileCardProps> = ({
         const response = await api.get(`/shares/file/${fileId}`);
         const fileShare = response.data
         if (fileShare) {
-          setFileShareUrl(fileShare.shareSecret);
+          setFileShareUrl(fileShare.url);
           setMaxDownloads(fileShare.maxDownloads);
           setExpiry(fileShare.expiresAt);
         }
@@ -185,7 +185,7 @@ const FileCard: React.FC<FileCardProps> = ({
       setMaxDownloads(newMaxDownloads);
       setExpiry(newExpiry);
       setShowShareModal(false);
-      setFileShareUrl(repsonse.data.shareSecret);
+      setFileShareUrl(repsonse.data.url);
     } catch (error) {
       console.error('Error sharing file:', error);
     }
