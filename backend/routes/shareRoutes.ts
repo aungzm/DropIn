@@ -2,7 +2,9 @@ import express from "express";
 import { body, param, query} from "express-validator";
 import { authenticateToken } from "../middlewares/authenticateToken";
 import { verifyAccountOwnershipOrAdmin } from "../middlewares/authMiddleware";
-import { addFileShareLink, addSpaceShareLink, removeFileShareLink, removeSpaceShareLink, verifyFileShareLink, verifySpaceShareLink, getSpaceInfoGuest, guestDownloadFile, guestDownloadAllFiles, modifySpaceShareLink, modifyFileShareLink } from "../controllers/shareController";
+import { addFileShareLink, addSpaceShareLink, removeFileShareLink, removeSpaceShareLink, verifyFileShareLink, verifySpaceShareLink, 
+    getSpaceInfoGuest, guestDownloadFile, guestDownloadAllFiles, modifySpaceShareLink, modifyFileShareLink, getSpaceShareInfo, getfileShareInfo
+ } from "../controllers/shareController";
 
 const router = express.Router();
 
@@ -53,6 +55,21 @@ router.patch(
         body("expiresAt", "Time Limit is in minutes is required").optional().isISO8601(),
     ],
     modifySpaceShareLink
+)
+
+
+router.get(
+    "/space/:spaceId",
+    authenticateToken,
+    verifyAccountOwnershipOrAdmin,
+    getSpaceShareInfo
+)
+
+router.get(
+    "/file/:fileId",
+    authenticateToken,
+    verifyAccountOwnershipOrAdmin,
+    getfileShareInfo
 )
 
 // Route for removing a file share link

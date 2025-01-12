@@ -57,6 +57,7 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
     }
 };
 
+
 export const modifyFileShareLink = async (req: Request, res: Response): Promise<void> => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -172,6 +173,58 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
 
     } catch (error) {
         console.error("Error modifying space share link:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+// Get File share info as user
+export const getfileShareInfo = async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+        return;
+    }
+    const { fileId } = req.params;
+    try {
+        const fileLink = await prisma.fileLink.findFirst({ where: { fileId } });
+        if (!fileLink) {
+            res.status(200).json({ message: "File share link not found" });
+            return;
+        }
+
+        res.status(200).json({
+            id: fileLink.id,
+            shareSecret: fileLink.shareSecret,
+            expiresAt: fileLink.expiresAt,
+            maxDownloads: fileLink.maxDownloads,
+        });
+    } catch (error) {
+        console.error("Error retrieving file share info:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+// Get space share info as user
+export const getSpaceShareInfo = async (req: Request, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+        return;
+    }
+    const { spaceId } = req.params;
+    try {
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId } });
+        if (!spaceLink) {
+            res.status(200).json({ message: "Space share link not found" });
+            return;
+        }
+
+        res.status(200).json({
+            id: spaceLink.id,
+            shareSecret: spaceLink.shareSecret,
+            expiresAt: spaceLink.expiresAt,
+        });
+    } catch (error) {
+        console.error("Error retrieving space share info:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };

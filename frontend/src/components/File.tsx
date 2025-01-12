@@ -264,7 +264,7 @@ const FileCard: React.FC<FileCardProps> = ({
           </svg>
         </button>
 
-        {/* Share (Example) */}
+        {/* Share */}
         <button
           onClick={onDeleteClick}
           className="text-red-600 hover:text-red-700"
@@ -315,7 +315,7 @@ const FileCard: React.FC<FileCardProps> = ({
                 <defs>
 
             </defs>
-                <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                <g id="Page-1" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
                     <g id="Dribbble-Light-Preview" transform="translate(-179.000000, -360.000000)" fill="#FF0000">
                         <g id="icons" transform="translate(56.000000, 160.000000)">
                             <path d="M130.35,216 L132.45,216 L132.45,208 L130.35,208 L130.35,216 Z M134.55,216 L136.65,216 L136.65,208 L134.55,208 L134.55,216 Z M128.25,218 L138.75,218 

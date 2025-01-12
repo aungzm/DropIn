@@ -7,6 +7,7 @@ import api from "../api/api";
 import Modal from "../components/Modal";
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { set } from "react-datepicker/dist/date_utils";
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -35,11 +36,19 @@ const Upload = () => {
     useEffect(() => {
       const fetchSpaceDetails = async () => {
         try {
-          const space = (await api.get(`/spaces/${spaceId}`)).data.space;
-          const spaceLink = (await api.get(`/shares/space/${spaceId}`)).data.shareLink;
-          setExpiry(spaceLink.expiry);
-          setMaxDownloads(spaceLink.maxDownloads);
-          setSpaceShareUrl(spaceLink.url);
+          const firstresponse = (await api.get(`/spaces/${spaceId}`));
+          const response = await api.get(`/shares/space/${spaceId}`);
+          const spaceLink = response.data.shareLink;
+          const space = firstresponse.data.space;
+          if (spaceLink) {
+            setExpiry(spaceLink.expiry);
+            setMaxDownloads(spaceLink.maxDownloads);
+            setSpaceShareUrl(spaceLink.url);
+          } else {
+            setExpiry(null);
+            setMaxDownloads(null);
+            setSpaceShareUrl("");
+          }
           setSpaceName(space.name);
           setIsSpaceLocked(space.password === "Yes");
     
@@ -144,6 +153,18 @@ const Upload = () => {
     setExpiry(null);
     setMaxDownloads(null);
     setSpaceShareUrl("");
+
+    if (spaceShareUrl === "") {
+      return;
+    } else {
+      try {
+        api.delete(`/shares/space/${spaceId}`);
+        alert("Space share link deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting space share link:", error);
+        alert("Failed to delete space share link. Please try again.");
+      }
+    }
   };
 
   const handleConfirmSpaceShare = async () => {
@@ -391,6 +412,9 @@ const Upload = () => {
         <button
           className="text-red-600 hover:text-red-700"
           title="Share" 
+          onClick={() => {
+            setShowShareModal(true);
+          }}
         >
           <svg
             width="20"
