@@ -13,12 +13,13 @@ function FileSharePage() {
   const { shareSecret } = useParams();
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
   const [needsPassword, setNeedsPassword] = useState(false);
-  const [filePassword, setPassword] = useState('');
+  const [filePassword, setFilePassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [downloadStarted, setDownloadStarted] = useState(false); // Prevent repeated triggers of download
 
   useEffect(() => {
-    // 1) Verify the file share
+    // Verify the file share
     api.get(`/shares/file/verify?shareSecret=${shareSecret}`)
       .then((res) => {
         setFileInfo(res.data);
@@ -28,6 +29,14 @@ function FileSharePage() {
       .finally(() => setIsLoading(false));
   }, [shareSecret]);
 
+  // Auto-download if no password is needed 
+  useEffect(() => {
+    if (!isLoading && fileInfo && !needsPassword && !downloadStarted) {
+      setDownloadStarted(true); 
+      downloadFile(fileInfo);
+    }
+  }, [isLoading, fileInfo, needsPassword, downloadStarted]);
+
   if (isLoading) return <div>Loading…</div>;
   if (error) return <div>{error}</div>;
   if (!fileInfo) {
@@ -35,12 +44,11 @@ function FileSharePage() {
     return null;
   }
 
-  // If no password needed, show direct download option
+ // If no password is needed, show a message while preparing download
   if (!needsPassword) {
     return (
       <div>
-        <h1>{fileInfo.name}</h1>
-        <button onClick={() => downloadFile(fileInfo)}>Download</button>
+        <h2>Preparing your download…</h2>
       </div>
     );
   }
@@ -53,7 +61,7 @@ function FileSharePage() {
         type="password"
         placeholder="Enter file password"
         value={filePassword}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => setFilePassword(e.target.value)}
       />
       <button onClick={() => handleProtectedDownload(fileInfo.id, filePassword)}>
         Download
@@ -65,7 +73,6 @@ function FileSharePage() {
 // For no-password case: direct download
 async function downloadFile(fileInfo: FileInfo) {
   try {
-    // Typically GET /file/:id/download
     const response = await api.get(`/shares/file/${fileInfo.id}/download`, {
       responseType: 'blob',
     });
@@ -84,13 +91,14 @@ async function handleProtectedDownload(fileId: string, password: string) {
       { password },
       { responseType: 'blob' },
     );
-    triggerFileDownload(response.data, response.data.name);
+    // Use the filename from the server if needed, or a fallback
+    triggerFileDownload(response.data, 'downloaded-file');
   } catch (err) {
     alert('Invalid password or file locked.');
   }
 }
 
-// 7) Helper to create download from blob
+// Helper to create download from blob
 function triggerFileDownload(blobData: Blob, filename: string) {
   const url = window.URL.createObjectURL(blobData);
   const link = document.createElement('a');
