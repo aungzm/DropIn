@@ -70,9 +70,6 @@ router.get(
     "/space/:spaceId",
     authenticateToken,
     verifyAccountOwnershipOrAdmin,
-    [
-        query("shareSecret", "Share Secret must be string").isString()
-    ],
     getSpaceShareInfo
 )
 
@@ -80,9 +77,6 @@ router.get(
     "/file/:fileId",
     authenticateToken,
     verifyAccountOwnershipOrAdmin,
-    [
-        query("shareSecret", "Share Secret must be string").isString()
-    ],
     getfileShareInfo
 )
 
@@ -120,6 +114,7 @@ router.get(
 router.get(
     "space/:spaceId/access",
     [
+        param("spaceId", "Space ID is required").notEmpty(),
         query("spacePassword").optional().isString().withMessage("Space Password must be a String"),
     ],
     getSpaceInfoGuest

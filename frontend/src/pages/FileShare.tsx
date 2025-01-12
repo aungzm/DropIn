@@ -13,7 +13,7 @@ function FileSharePage() {
   const { shareSecret } = useParams();
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
   const [needsPassword, setNeedsPassword] = useState(false);
-  const [password, setPassword] = useState('');
+  const [filePassword, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,10 +52,10 @@ function FileSharePage() {
       <input
         type="password"
         placeholder="Enter file password"
-        value={password}
+        value={filePassword}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <button onClick={() => handleProtectedDownload(fileInfo.id, password)}>
+      <button onClick={() => handleProtectedDownload(fileInfo.id, filePassword)}>
         Download
       </button>
     </div>

@@ -13,7 +13,7 @@ function SpaceSharePage() {
     const { shareSecret } = useParams();
     const [spaceInfo, setSpaceInfo] = useState<SpaceInfo | null>(null);
     const [needsPassword, setNeedsPassword] = useState(false);
-    const [password, setPassword] = useState('');
+    const [spacePassword, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(true);
   
@@ -51,10 +51,10 @@ function SpaceSharePage() {
         <input 
           type="password" 
           placeholder="Enter space password"
-          value={password}
+          value={spacePassword}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button onClick={() => handleProtectedAccess(spaceInfo.id, password)}>
+        <button onClick={() => handleProtectedAccess(spaceInfo.id, spacePassword)}>
           Access
         </button>
       </div>
