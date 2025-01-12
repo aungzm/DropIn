@@ -98,7 +98,7 @@ router.delete(
 router.get(
     "/file/verify",
     [
-        query("shareSecret", "Share Secret is required").notEmpty(),
+        query("shareUrl", "Share Secret is required").notEmpty(),
     ],
     verifyFileShareLink
 );
@@ -115,7 +115,7 @@ router.get(
 router.post(
     "/space/verify",
     [
-        query("shareSecret", "Share Secret is required").notEmpty(),
+        query("shareUrl", "Share Secret is required").notEmpty(),
     ],
     verifySpaceShareLink
 );

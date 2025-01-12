@@ -6,7 +6,10 @@ import crypto from "crypto";
 import path from "path";
 import archiver from "archiver";
 import fs from "fs/promises";
+import dotenv from "dotenv";
 
+const envPath = path.resolve(__dirname, "../../.env");
+dotenv.config({ path: envPath });
 const prisma = new PrismaClient();
 
 // Helper function to generate a random share secret
@@ -47,7 +50,7 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
         res.status(201).json({ 
             message: "File share link created successfully!", 
             fileId: fileLink.fileId,
-            shareSecret: fileLink.shareSecret,
+            url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
             maxDownloads: fileLink.maxDownloads,
             expiresAt: fileLink.expiresAt
         });
@@ -88,7 +91,7 @@ export const modifyFileShareLink = async (req: Request, res: Response): Promise<
         res.status(200).json({ 
             message: "File share link created successfully!", 
             fileId: fileLink.fileId,
-            shareSecret: fileLink.shareSecret,
+            url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
             maxDownloads: fileLink.maxDownloads,
             expiresAt: fileLink.expiresAt
         });
@@ -128,7 +131,7 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
         res.status(201).json({ 
             message: "Space share link created successfully!", 
             spaceId: spaceLink.spaceId,
-            shareSecret: spaceLink.shareSecret,
+            url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
             expiresAt: spaceLink.expiresAt
         });
     } catch (error) {
@@ -167,7 +170,7 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
         res.status(200).json({ 
             message: "Space share link created successfully!", 
             spaceId: spaceLink.spaceId,
-            shareSecret: spaceLink.shareSecret,
+            url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
             expiresAt: spaceLink.expiresAt 
         });
 
@@ -193,7 +196,7 @@ export const getfileShareInfo = async (req: Request, res: Response): Promise<voi
 
         res.status(200).json({
             id: fileLink.id,
-            shareSecret: fileLink.shareSecret,
+            url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
             expiresAt: fileLink.expiresAt,
             maxDownloads: fileLink.maxDownloads,
         });
@@ -220,7 +223,7 @@ export const getSpaceShareInfo = async (req: Request, res: Response): Promise<vo
 
         res.status(200).json({
             id: spaceLink.id,
-            shareSecret: spaceLink.shareSecret,
+            url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
             expiresAt: spaceLink.expiresAt,
         });
     } catch (error) {
@@ -289,7 +292,8 @@ export const verifyFileShareLink = async (req: Request, res: Response): Promise<
         return;
     }
 
-    const { shareSecret } = req.body;
+    const { shareUrl } = req.body;
+    const shareSecret = shareUrl.split("/").pop();
 
     try {
         const fileLink = await prisma.fileLink.findFirst({ where: { shareSecret } });
@@ -330,7 +334,8 @@ export const verifySpaceShareLink = async (req: Request, res: Response): Promise
         return;
     }
 
-    const { shareSecret } = req.body;
+    const { shareUrl } = req.body;
+    const shareSecret = shareUrl.split("/").pop();
 
     try {
         const spaceLink = await prisma.spaceLink.findFirst({ where: { shareSecret } });
