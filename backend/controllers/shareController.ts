@@ -292,16 +292,16 @@ export const verifyFileShareLink = async (req: Request, res: Response): Promise<
         return;
     }
 
-    const { shareSecret } = req.body;
+    const { shareSecret } = req.query;
 
     try {
-        const fileLink = await prisma.fileLink.findFirst({ where: { shareSecret } });
+        const fileLink = await prisma.fileLink.findFirst({ where: { shareSecret: shareSecret as string } });
         if (!fileLink) {
             res.status(404).json({ error: "File share link not valid" });
             return;
         }
 
-        const file = await prisma.file.findUnique({
+        const file = await prisma.file.findFirst({
             where: { id: fileLink.fileId },
             include: {
                 uploadedBy: { select: { username: true } },
@@ -333,17 +333,17 @@ export const verifySpaceShareLink = async (req: Request, res: Response): Promise
         return;
     }
 
-    const { shareSecret } = req.body;
+    const { shareSecret }  = req.query;
 
     try {
-        const spaceLink = await prisma.spaceLink.findFirst({ where: { shareSecret } });
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { shareSecret: shareSecret as string } });
     
         if (!spaceLink) {
             res.status(404).json({ error: "Space share link not valid" });
             return;
         }
 
-        const space = await prisma.space.findUnique({
+        const space = await prisma.space.findFirst({
             where: { id: spaceLink.spaceId },
             include: {
                 createdBy: { select: { username: true } },
@@ -379,7 +379,7 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
     
     try {
         // Fetch the file metadata from the database
-        const file = await prisma.file.findUnique({ where: { id: fileId } });
+        const file = await prisma.file.findFirst({ where: { id: fileId } });
         if (!file) {
             res.status(404).json({ error: "File not found in the database" });
             return;
@@ -441,7 +441,7 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
 
     try {
         // Fetch space name
-        const space = await prisma.space.findUnique({
+        const space = await prisma.space.findFirst({
             where: { id: spaceId },
             select: { name: true },
         });
@@ -535,7 +535,7 @@ export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<vo
     const { spaceId, spacePassword } = req.params;
     try {
 
-        const space = await prisma.space.findUnique({
+        const space = await prisma.space.findFirst({
             where: { id: spaceId },
             include: {
                 createdBy: { select: { id: true, username: true, email: true } },
