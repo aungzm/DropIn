@@ -5,7 +5,7 @@ import api from '../api/api';
 import { useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { set } from 'react-datepicker/dist/date_utils';
+import LinkModal from './LinkModal';
 
 interface FileCardProps {
   className?: string;
@@ -54,6 +54,7 @@ const FileCard: React.FC<FileCardProps> = ({
   const [expiry, setExpiry] = useState<Date | null>(null);
   const [newExpiry, setNewExpiry] = useState<Date | null>(null);
   const [newMaxDownloads, setNewMaxDownloads] = useState<number | null>(null);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const fileExtension = fileName.split('.').pop() || ''; // File extension
   const getFileIcon = () => {
@@ -176,22 +177,27 @@ const FileCard: React.FC<FileCardProps> = ({
     fetchFileDetails();
   }, [fileId]);
 
-  const handleConfirmShare = async () => {
-    try {
-      const repsonse = await api.post(`/shares/file/${fileId}`, {
-        maxDownloads: newMaxDownloads,
-        expiry: newExpiry,
-      });
-      setMaxDownloads(newMaxDownloads);
-      setExpiry(newExpiry);
-      setShowShareModal(false);
-      setFileShareUrl(repsonse.data.url);
-    } catch (error) {
-      console.error('Error sharing file:', error);
+  const handleConfirmFileShare = async () => {
+    setShowShareModal(false);
+    if (newMaxDownloads !== maxDownloads || newExpiry !== expiry) {
+      try {
+        const repsonse = await api.post(`/shares/file/${fileId}`, {
+          maxDownloads: newMaxDownloads,
+          expiry: newExpiry,
+        });
+        setMaxDownloads(newMaxDownloads);
+        setExpiry(newExpiry);
+        setFileShareUrl(repsonse.data.url);
+        setShowLinkModal(true);
+      } catch (error) {
+        console.error('Error sharing file:', error);
+      }
+    } else {
+      setShowLinkModal(true);
     }
   }
 
-  const handleDeleteShare = async () => {
+  const handleDeleteFileShare = async () => {
     try {
       await api.delete(`/shares/file/${fileId}`);
       setFileShareUrl('');
@@ -202,7 +208,7 @@ const FileCard: React.FC<FileCardProps> = ({
     }
   }
 
-  const handleCancelShare = async () => {
+  const handleCancelFileShare = async () => {
     setShowShareModal(false);
     setNewExpiry(null);
     setNewMaxDownloads(null);
@@ -500,7 +506,7 @@ const FileCard: React.FC<FileCardProps> = ({
             <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
               <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
                 <h3 className="text-lg text-center font-semibold mb-4">Space Access</h3>
-                <form onSubmit={handleConfirmShare}>
+                <form onSubmit={handleConfirmFileShare}>
                   {/* Max Downloads */}
                   <label className="block font-medium mb-1">Max Downloads</label>
                   <input
@@ -527,7 +533,7 @@ const FileCard: React.FC<FileCardProps> = ({
                     {/* Delete */}
                     <button
                       type="button"
-                      onClick={handleDeleteShare}
+                      onClick={handleDeleteFileShare}
                       className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg w-1/3"
                     >
                       Delete
@@ -535,7 +541,7 @@ const FileCard: React.FC<FileCardProps> = ({
                     {/* Cancel */}
                     <button
                       type="button"
-                      onClick={handleCancelShare}
+                      onClick={handleCancelFileShare}
                       className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg w-1/3"
                     >
                       Cancel
@@ -551,7 +557,13 @@ const FileCard: React.FC<FileCardProps> = ({
                 </form>
               </div>
             </div>
-          )}        
+          )}
+          {/* Link Modal */}
+          <LinkModal
+            showLinkModal={showLinkModal}
+            shareUrl={fileShareurl}
+            onClose={() => setShowLinkModal(false)}
+          />        
     </div>
   );
 };

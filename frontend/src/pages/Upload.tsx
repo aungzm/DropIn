@@ -707,10 +707,10 @@ const Upload = () => {
           )}
           {/* Link Modal */}
           <LinkModal
-        showLinkModal={showLinkModal}
-        shareUrl={spaceShareUrl}
-        onClose={() => setShowLinkModal(false)}
-      />
+            showLinkModal={showLinkModal}
+            shareUrl={spaceShareUrl}
+            onClose={() => setShowLinkModal(false)}
+          />
     </div>
   );
 };
