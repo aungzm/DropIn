@@ -181,21 +181,24 @@ const FileCard: React.FC<FileCardProps> = ({
     setShowShareModal(false);
     if (newMaxDownloads !== maxDownloads || newExpiry !== expiry) {
       try {
-        const repsonse = await api.post(`/shares/file/${fileId}`, {
+        const response = await api.post(`/shares/file/${fileId}`, {
           maxDownloads: newMaxDownloads,
           expiry: newExpiry,
         });
         setMaxDownloads(newMaxDownloads);
         setExpiry(newExpiry);
-        setFileShareUrl(repsonse.data.url);
+        setFileShareUrl(response.data.url);
         setShowLinkModal(true);
       } catch (error) {
         console.error('Error sharing file:', error);
       }
     } else {
+      // If nothing changed, still show the link modal
       setShowLinkModal(true);
     }
-  }
+    console.log("Link modal opened", showLinkModal);
+  };
+  
 
   const handleDeleteFileShare = async () => {
     try {
@@ -331,7 +334,7 @@ const FileCard: React.FC<FileCardProps> = ({
 
         {/* Share */}
         <button
-          onClick={onDeleteClick}
+          onClick={() => setShowShareModal(true)}
           className="text-red-600 hover:text-red-700"
           title="Share" 
         >
@@ -506,7 +509,12 @@ const FileCard: React.FC<FileCardProps> = ({
             <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
               <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
                 <h3 className="text-lg text-center font-semibold mb-4">Space Access</h3>
-                <form onSubmit={handleConfirmFileShare}>
+                <div
+                  onSubmit={(e) => {
+                    e.preventDefault();  
+                    handleConfirmFileShare();
+                  }}
+                >
                   {/* Max Downloads */}
                   <label className="block font-medium mb-1">Max Downloads</label>
                   <input
@@ -548,13 +556,13 @@ const FileCard: React.FC<FileCardProps> = ({
                     </button>
                     {/* Confirm */}
                     <button
-                      type="submit"
+                      onClick={handleConfirmFileShare}
                       className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-1/3"
                     >
                       Confirm
                     </button>
                   </div>
-                </form>
+                </div>
               </div>
             </div>
           )}

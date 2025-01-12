@@ -6,6 +6,8 @@ import Setting from "./pages/Setting";
 import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
 import Users from "./pages/Users";
+import SpaceShare from "./pages/SpaceShare";
+import FileSharePage from "./pages/FileShare";
 import PrivateRoute from "./components/privateRoute";
 
 const App: React.FC = () => {
@@ -19,8 +21,9 @@ const App: React.FC = () => {
         <Route path="/settings" element={<Setting />} />
         <Route path="/upload/:spaceId" element={<Upload />} />
         <Route path="/users" element={<Users />} />
+        <Route path="/shares/space/:shareSecret" element={<SpaceShare />} />
+        <Route path="/shares/file/:shareSecret" element={<FileSharePage />} />
 
-        {/* Private Routes */}
 
         <Route element={<PrivateRoute />}>
           
