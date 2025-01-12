@@ -15,7 +15,7 @@ router.post(
     verifyAccountOwnershipOrAdmin,
     [
         param("fileId", "File ID is required").notEmpty(),
-        body("maxDownloads", "Max Downloads is required").optional().isInt(),
+        body("maxDownloads", "Max Downloads is required").optional({nullable: true}).isInt(),
         body("expiresAt", "Time Limit is in minutes")
             .optional({ nullable: true })
             .isISO8601()
@@ -30,7 +30,7 @@ router.patch(
     verifyAccountOwnershipOrAdmin,
     [
         param("fileId", "File ID is required").notEmpty(),
-        body("maxDownloads", "Max Downloads is required").optional().isInt(),
+        body("maxDownloads", "Max Downloads is required").optional({nullable: true}).isInt(),
         body("expiresAt", "Time Limit is in minutes")
             .optional({ nullable: true })
             .isISO8601()
@@ -70,6 +70,9 @@ router.get(
     "/space/:spaceId",
     authenticateToken,
     verifyAccountOwnershipOrAdmin,
+    [
+        query("shareSecret", "Share Secret must be string").isString()
+    ],
     getSpaceShareInfo
 )
 
@@ -77,6 +80,9 @@ router.get(
     "/file/:fileId",
     authenticateToken,
     verifyAccountOwnershipOrAdmin,
+    [
+        query("shareSecret", "Share Secret must be string").isString()
+    ],
     getfileShareInfo
 )
 

@@ -292,8 +292,7 @@ export const verifyFileShareLink = async (req: Request, res: Response): Promise<
         return;
     }
 
-    const { shareUrl } = req.body;
-    const shareSecret = shareUrl.split("/").pop();
+    const { shareSecret } = req.body;
 
     try {
         const fileLink = await prisma.fileLink.findFirst({ where: { shareSecret } });
@@ -334,8 +333,7 @@ export const verifySpaceShareLink = async (req: Request, res: Response): Promise
         return;
     }
 
-    const { shareUrl } = req.body;
-    const shareSecret = shareUrl.split("/").pop();
+    const { shareSecret } = req.body;
 
     try {
         const spaceLink = await prisma.spaceLink.findFirst({ where: { shareSecret } });
