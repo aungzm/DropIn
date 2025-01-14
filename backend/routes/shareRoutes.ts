@@ -64,6 +64,45 @@ router.get(
 );
 
 // Protected Routes
+router.get(
+    "/file/:fileId",
+    authenticateToken,
+    verifyAccountOwnershipOrAdmin,
+    [
+        param("fileId", "File ID is required").notEmpty(),
+    ],
+    getfileShareInfo
+);
+
+router.get(
+    "/space/:spaceId",
+    authenticateToken,
+    verifyAccountOwnershipOrAdmin,
+    [
+        param("spaceId", "Space ID is required").notEmpty(),
+    ],
+    getSpaceShareInfo
+);
+
+router.delete(
+    "/file/:fileId",
+    authenticateToken,
+    verifyAccountOwnershipOrAdmin,
+    [
+        param("fileId", "File ID is required").notEmpty(),
+    ],
+    removeFileShareLink
+);
+
+router.delete(
+    "/space/:spaceId",
+    authenticateToken,
+    verifyAccountOwnershipOrAdmin,
+    [
+        param("spaceId", "Space ID is required").notEmpty(),
+    ],
+    removeSpaceShareLink
+);
 router.post(
     "/file/:fileId",
     authenticateToken,

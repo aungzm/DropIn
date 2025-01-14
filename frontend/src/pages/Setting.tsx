@@ -77,33 +77,42 @@ const Settings: React.FC = () => {
 
     const handleSaveChanges = async (e: React.FormEvent) => {
         e.preventDefault();
-    
-        try {
-            // Update user data (if any changes like username)
-            await api.put('/users/update', {
-                username: userData.username, // Send user data if necessary
-            });
-    
-            // Update profile picture if a new one is selected
+        if (userData.username) {
+            try {
+                await api.put('/users/name', {
+                    newUsername: userData.username
+                });
+                alert('Profile updated successfully!');
+            } catch (error: any) {
+                console.error('Error updating profile:', error);
+                if (error.response?.data?.error) {
+                    alert(error.response.data.error);
+                } else {
+                    alert('An unexpected error occurred while updating your profile.');
+                }
+            }
+        } 
+
+        if (userData.profileImage) {
             const profileImageInput = document.getElementById('profileImageInput') as HTMLInputElement;
             if (profileImageInput?.files && profileImageInput.files[0]) {
                 const formData = new FormData();
-                formData.append('profilePic', profileImageInput.files[0]); 
-    
-                await api.put('/users/profile', formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data', // Explicitly setting Content-Type
-                    },
-                });
-            }
-    
-            alert('Profile updated successfully!');
-        } catch (error: any) {
-            console.error('Error updating profile:', error);
-            if (error.response?.data?.error) {
-                alert(error.response.data.error); // Show specific backend error for debugging
-            } else {
-                alert('An unexpected error occurred while updating your profile.');
+                formData.append('profilePic', profileImageInput.files[0]);
+                try {
+                    await api.put('/users/profile', formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    });
+                    alert('Profile updated successfully!');
+                } catch (error: any) {
+                    console.error('Error updating profile:', error);
+                    if (error.response?.data?.error) {
+                        alert(error.response.data.error);
+                    } else {
+                        alert('An unexpected error occurred while updating your profile.');
+                    }
+                }
             }
         }
     };

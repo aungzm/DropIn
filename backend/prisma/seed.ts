@@ -7,7 +7,7 @@ async function main() {
   // Define admin credentials
   const adminUsername = 'admin';
   const adminEmail = 'admin@example.com';
-  const adminPassword = 'admin'; // In production, use a strong password
+  const adminPassword = 'admin'; 
 
   // Hash the password
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
