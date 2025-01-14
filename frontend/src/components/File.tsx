@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import LinkModal from './LinkModal';
+import getFileIcon from '../utils/getFileIcon';
 
 interface FileCardProps {
   className?: string;
@@ -25,22 +26,7 @@ const FileCard: React.FC<FileCardProps> = ({
   onRenameSucess,
   onDeleteSuccess
 }) => {
-  // Ext file icon mapping
-  const fileIconMap: { [key: string]: string } = {
-    'pdf': '/src/assets/pdf.png',
-    'doc': '/src/assets/doc.png',
-    'xls': '/src/assets/xls.png',
-    'jpg': '/src/assets/jpg.png',
-    'png': '/src/assets/png.png',
-    'default': '/src/assets/file.png',
-    'xlsx': '/src/assets/xlsx.png',
-    'docx': '/src/assets/docx.png',
-    'ppt': '/src/assets/ppt.png',
-    'pptx': '/src/assets/pptx.png',
-    'txt': '/src/assets/txt.png',
-    'gif': '/src/assets/gif.png',
-    'jpeg': '/src/assets/jpeg.png',
-  };
+  
 
   
 
@@ -57,12 +43,10 @@ const FileCard: React.FC<FileCardProps> = ({
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const fileExtension = fileName.split('.').pop() || ''; // File extension
-  const getFileIcon = () => {
-    return fileIconMap[fileExtension] || fileIconMap['default'];
-  };
+  
   // "lock" or "unlock"
   const [modalMode, setModalMode] = useState(locked ? "lock" : "unlock");
-  const fileIcon = getFileIcon();
+  const fileIcon = getFileIcon(fileExtension);
 
   // Password fields
   const [password, setPassword] = useState("");
