@@ -219,7 +219,7 @@ export const getfileShareInfo = async (req: Request, res: Response): Promise<voi
     }
     const { fileId } = req.params;
     try {
-        const fileLinks = await prisma.fileLink.findMany({ where: { fileId } });
+        const fileLinks = await prisma.fileLink.findMany({ where: { fileId, spaceLinkId: null } }); // Only get file links that are not associated with a space
         if (!fileLinks || fileLinks.length === 0) {
             res.status(200).json({ message: "No file share links found" });
             return;
@@ -230,7 +230,6 @@ export const getfileShareInfo = async (req: Request, res: Response): Promise<voi
             url: process.env.BASE_URL + "/shares/file/" + link.shareSecret,
             expiresAt: link.expiresAt,
             maxDownloads: link.maxDownloads ?? "unlimited",
-            belongsTo: link.spaceLinkId ? "space" : "file",
             downloads: link.downloads ?? 0,
             remainingDownloads: link.maxDownloads ? link.maxDownloads - (link.downloads ?? 0) : "unlimited"
         }));
@@ -259,7 +258,6 @@ export const getSpaceShareInfo = async (req: Request, res: Response): Promise<vo
         }
 
         res.status(200).json({
-            id: spaceLink.id,
             url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
             expiresAt: spaceLink.expiresAt,
         });
@@ -476,7 +474,7 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
         }
         if (fileShare && fileShare.maxDownloads !== null) {
             await prisma.fileLink.update({ 
-                where: { id: fileShare.id },
+                where: { id: fileShare.id, shareSecret: shareSecret as string },
                 data: { downloads: (fileShare.downloads ?? 0) + 1 }
             });
             if (fileShare.downloads === fileShare.maxDownloads) {
