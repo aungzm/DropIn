@@ -122,6 +122,7 @@ router.post(
         param("fileId", "File ID is required").notEmpty(),
         body("maxDownloads").optional({ nullable: true }).isInt().withMessage("Max Downloads must be an integer"),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
+        body("notes").optional({ nullable: true }).isString().withMessage("Notes must be a string"),
     ],
     addFileShareLink
 );
@@ -135,6 +136,7 @@ router.patch(
         param("fileId", "File ID is required").notEmpty(),
         body("maxDownloads").optional({ nullable: true }).isInt().withMessage("Max Downloads must be an integer"),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
+        body("notes").optional({ nullable: true }).isString().withMessage("Notes must be a string"),
     ],
     modifyFileShareLink
 );
@@ -147,6 +149,7 @@ router.post(
     [
         param("spaceId", "Space ID is required").notEmpty(),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
+        body("notes").optional({ nullable: true }).isString().withMessage("Notes must be a string"),
     ],
     addSpaceShareLink
 );
@@ -159,6 +162,7 @@ router.patch(
     [
         param("spaceId", "Space ID is required").notEmpty(),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
+        body("notes").optional({ nullable: true }).isString().withMessage("Notes must be a string"),
     ],
     modifySpaceShareLink
 );

@@ -28,7 +28,7 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
     }
 
     const { fileId } = req.params;
-    const { maxDownloads, expiresAt } = req.body;
+    const { maxDownloads, expiresAt, notes } = req.body;
 
     try {
         const file = await prisma.file.findUnique({ where: { id: fileId } });
@@ -45,6 +45,7 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
                 shareSecret,
                 maxDownloads,
                 expiresAt,
+                notes,
             },
         });
 
@@ -70,7 +71,7 @@ export const modifyFileShareLink = async (req: Request, res: Response): Promise<
     }
 
     const { fileId } = req.params;
-    const { expiresAt, maxDownloads } = req.body; // Time limit in minutes
+    const { expiresAt, maxDownloads, notes } = req.body; // Time limit in minutes
 
     try {
         const file = await prisma.file.findFirst({ where: { id: fileId } });
@@ -87,7 +88,7 @@ export const modifyFileShareLink = async (req: Request, res: Response): Promise<
 
         await prisma.fileLink.update({
             where: { id: fileLink.id },
-            data: { expiresAt, maxDownloads },
+            data: { expiresAt, maxDownloads, notes},
         });
         res.status(200).json({ 
             message: "File share link created successfully!", 
@@ -111,7 +112,8 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
     }
 
     const { spaceId } = req.params;
-    const { expiresAt } = req.body; // Time limit in minutes
+    const { expiresAt, notes } = req.body; // Time limit in minutes
+
     try {
         const space = await prisma.space.findUnique({ where: { id: spaceId }, 
             include: { files: true }
@@ -130,6 +132,7 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
                 spaceId,
                 shareSecret,
                 expiresAt,
+                notes
             },
         });
 
@@ -166,7 +169,7 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
     }
     
     const { spaceId } = req.params;
-    const { expiresAt } = req.body; // Time limit in minutes
+    const { expiresAt, notes } = req.body; // Time limit in minutes
 
     try {
         const space = await prisma.space.findFirst({ where: { id: spaceId } });
@@ -227,6 +230,7 @@ export const getfileShareInfo = async (req: Request, res: Response): Promise<voi
             url: process.env.BASE_URL + "/shares/file/" + link.shareSecret,
             expiresAt: link.expiresAt,
             maxDownloads: link.maxDownloads ?? "unlimited",
+            belongsTo: link.spaceLinkId ? "space" : "file",
             downloads: link.downloads ?? 0,
             remainingDownloads: link.maxDownloads ? link.maxDownloads - (link.downloads ?? 0) : "unlimited"
         }));
@@ -283,6 +287,10 @@ export const removeFileShareLink = async (req: Request, res: Response): Promise<
             return;
         }
 
+        if (fileLink.spaceLinkId) {
+            res.status(403).json({ error: "This shared link belongs the space, to remove this link please delete the space share link" });
+        }
+
         await prisma.fileLink.delete({ where: { id: fileLink.id } });
 
         res.status(200).json({ message: "File share link removed successfully!" });
@@ -312,9 +320,7 @@ export const removeSpaceShareLink = async (req: Request, res: Response): Promise
             return;
         }
 
-        for (const fileLink of spaceLink.fileLinks) {
-            await prisma.fileLink.delete({ where: { id: fileLink.id } });
-        }
+        await prisma.fileLink.deleteMany({ where: { spaceLinkId: spaceId } });
 
         await prisma.spaceLink.delete({ where: { id: spaceLink.id } });
 
