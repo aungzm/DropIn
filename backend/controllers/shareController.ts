@@ -144,6 +144,7 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
                         shareSecret: generateShareSecret(),
                         expiresAt,
                         spaceLinkId: spaceLink.id,
+                        notes: "Shared from space link",
                     },
                 });
             }
@@ -188,7 +189,7 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
 
         await prisma.spaceLink.update({
             where: { id: spaceLink.id },
-            data: { expiresAt },
+            data: { expiresAt, notes },
         });
 
         for (const fileLink of spaceLink.fileLinks) {
