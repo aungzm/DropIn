@@ -56,23 +56,26 @@ model File {
 }
 
 model FileLink {
-  id           String   @id @default(uuid())
-  file         File     @relation(fields: [fileId], references: [id], name: "FileLinks")
+  id           String     @id @default(uuid())
+  file         File       @relation(fields: [fileId], references: [id], name: "FileLinks")
   fileId       String
-  shareSecret  String
+  spaceLink    SpaceLink? @relation(fields: [spaceLinkId], references: [id], name: "SpaceLinkFiles")
+  spaceLinkId  String?
+  shareSecret  String   @unique
   downloads    Int?
   maxDownloads Int?
   expiresAt    DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime   @default(now())
 }
 
 model SpaceLink {
-  id          String   @id @default(uuid())
-  space       Space    @relation(fields: [spaceId], references: [id], name: "SpaceLinks")
+  id          String     @id @default(uuid())
+  space       Space      @relation(fields: [spaceId], references: [id], name: "SpaceLinks")
   spaceId     String
+  fileLinks   FileLink[] @relation("SpaceLinkFiles")
   shareSecret String
   expiresAt   DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime   @default(now())
 }
 
 model ProfilePic {

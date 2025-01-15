@@ -6,6 +6,7 @@ import crypto from "crypto";
 import path from "path";
 import archiver from "archiver";
 import fs from "fs/promises";
+import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
 const envPath = path.resolve(__dirname, "../../.env");
@@ -112,13 +113,17 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
     const { spaceId } = req.params;
     const { expiresAt } = req.body; // Time limit in minutes
     try {
-        const space = await prisma.space.findUnique({ where: { id: spaceId } });
+        const space = await prisma.space.findUnique({ where: { id: spaceId }, 
+            include: { files: true }
+        });
         if (!space) {
             res.status(404).json({ error: "Space not found" });
             return;
         }
 
         const shareSecret = generateShareSecret();
+
+        
 
         const spaceLink = await prisma.spaceLink.create({
             data: {
@@ -127,6 +132,19 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
                 expiresAt,
             },
         });
+
+        if (space.files){  // Create file share links for all files in the space
+            for (const file of space.files){
+                await prisma.fileLink.create({
+                    data: {
+                        fileId: file.id,
+                        shareSecret: generateShareSecret(),
+                        expiresAt,
+                        spaceLinkId: spaceLink.id,
+                    },
+                });
+            }
+        }
 
         res.status(201).json({ 
             message: "Space share link created successfully!", 
@@ -157,7 +175,9 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
             return;
         }
 
-        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId } });
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId },
+            include: { fileLinks: true } 
+        });
         if (!spaceLink) {
             res.status(404).json({ error: "Space link not found" });
             return;
@@ -167,8 +187,16 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
             where: { id: spaceLink.id },
             data: { expiresAt },
         });
+
+        for (const fileLink of spaceLink.fileLinks) {
+            await prisma.fileLink.update({
+                where: { id: fileLink.id },
+                data: { expiresAt }
+            });
+        }
+
         res.status(200).json({ 
-            message: "Space share link created successfully!", 
+            message: "Space share modified successfully!", 
             spaceId: spaceLink.spaceId,
             url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
             expiresAt: spaceLink.expiresAt 
@@ -179,7 +207,7 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
         res.status(500).json({ error: "Internal server error" });
     }
 };
-// Get File share info as user
+// Get All File share Links as user to administrator
 export const getfileShareInfo = async (req: Request, res: Response): Promise<void> => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -188,18 +216,22 @@ export const getfileShareInfo = async (req: Request, res: Response): Promise<voi
     }
     const { fileId } = req.params;
     try {
-        const fileLink = await prisma.fileLink.findFirst({ where: { fileId } });
-        if (!fileLink) {
-            res.status(200).json({ message: "File share link not found" });
+        const fileLinks = await prisma.fileLink.findMany({ where: { fileId } });
+        if (!fileLinks || fileLinks.length === 0) {
+            res.status(200).json({ message: "No file share links found" });
             return;
         }
 
-        res.status(200).json({
-            id: fileLink.id,
-            url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
-            expiresAt: fileLink.expiresAt,
-            maxDownloads: fileLink.maxDownloads,
-        });
+        const linksInfo = fileLinks.map(link => ({
+            id: link.id,
+            url: process.env.BASE_URL + "/shares/file/" + link.shareSecret,
+            expiresAt: link.expiresAt,
+            maxDownloads: link.maxDownloads ?? "unlimited",
+            downloads: link.downloads ?? 0,
+            remainingDownloads: link.maxDownloads ? link.maxDownloads - (link.downloads ?? 0) : "unlimited"
+        }));
+
+        res.status(200).json(linksInfo);
     } catch (error) {
         console.error("Error retrieving file share info:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -214,8 +246,9 @@ export const getSpaceShareInfo = async (req: Request, res: Response): Promise<vo
         return;
     }
     const { spaceId } = req.params;
+    const { shareSecret } = req.query;
     try {
-        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId } });
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId, shareSecret: shareSecret as string } });
         if (!spaceLink) {
             res.status(200).json({ message: "Space share link not found" });
             return;
@@ -241,9 +274,10 @@ export const removeFileShareLink = async (req: Request, res: Response): Promise<
     }
 
     const { fileId } = req.params;
+    const { shareSecret } = req.query;
 
     try {
-        const fileLink = await prisma.fileLink.findFirst({ where: { fileId } });
+        const fileLink = await prisma.fileLink.findFirst({ where: { fileId, shareSecret: shareSecret as string } });
         if (!fileLink) {
             res.status(404).json({ error: "File share link not found" });
             return;
@@ -269,10 +303,17 @@ export const removeSpaceShareLink = async (req: Request, res: Response): Promise
     const { spaceId } = req.params;
 
     try {
-        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId } });
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId },
+            include: { fileLinks: true } 
+        });
+
         if (!spaceLink) {
             res.status(404).json({ error: "Space share link not found" });
             return;
+        }
+
+        for (const fileLink of spaceLink.fileLinks) {
+            await prisma.fileLink.delete({ where: { id: fileLink.id } });
         }
 
         await prisma.spaceLink.delete({ where: { id: spaceLink.id } });
@@ -376,6 +417,7 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
     }
 
     const { fileId } = req.params;
+    const { shareSecret, password } = req.query;
     
     try {
         // Fetch the file metadata from the database
@@ -385,8 +427,14 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
             return;
         }
 
+        const fileLink = await prisma.fileLink.findFirst({ where: { fileId, shareSecret: shareSecret as string } });
+        if (!fileLink) {
+            res.status(404).json({ error: "File share link not valid" });
+            return;
+        }
+
         // Construct the absolute filesystem path
-        const uploadsDir = path.join(__dirname, '../../uploads'); // Adjust the path as necessary
+        const uploadsDir = path.join(__dirname, '../../uploads'); 
         const spaceDir = path.join(uploadsDir, String(file.spaceId));
         const filePath = path.join(spaceDir, file.name);
 
@@ -395,6 +443,12 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
             await fs.access(filePath);
         } catch {
             res.status(404).json({ error: "File not found on the server" });
+            return;
+        }
+
+        // Check if the file is password-protected
+        if (file.password && !await bcrypt.compare(password as string, file.password)) {
+            res.status(401).json({ error: "Incorrect password" });
             return;
         }
 
@@ -438,6 +492,7 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
     }
 
     const { spaceId } = req.params;
+    const { shareSecret } = req.query;
 
     try {
         // Fetch space name
@@ -451,10 +506,18 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
             return;
         }
 
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId, shareSecret: shareSecret as string },
+            include: { fileLinks: true }
+        });
+        if (!spaceLink) {
+            res.status(404).json({ error: "Space share link not valid" });
+            return;
+        }
+
         // Fetch files belonging to the specified space
         const files = await prisma.file.findMany({ where: { spaceId } });
         if (files.length === 0) {
-            res.status(404).json({ error: "No files found in the space" });
+            res.status(200).json({ message: "No files associated with this space" });
             return;
         }
 
@@ -470,20 +533,24 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
         const archive = archiver("zip", { zlib: { level: 9 } });
 
         // Handle archiver errors
-        archive.on("error", async (err) => {
+        archive.on("error", async (archiveErr) => {
             await output.close();
             await fs.unlink(zipFilePath).catch(() => {});
-            res.status(500).json({ error: "Failed to create zip archive" });
+            res.status(500).json({ error: "Failed to create zip archive", details: archiveErr.message });
         });
 
         // Pipe the archive data to the zip file
         const stream = archive.pipe(output.createWriteStream());
 
+        const lockedFiles: Array<{ id: string; name: string }> = [];
+
         // Add each file to the archive
         for (const file of files) {
             const filePath = path.join(uploadsDir, file.name);
-            if (await fileExists(filePath)) {
+            if (await fileExists(filePath) && file.password === null) { // Only add files that exist and have no password
                 archive.file(filePath, { name: file.name });
+            } else {
+                lockedFiles.push({ id: file.id, name: file.name });
             }
         }
 
@@ -493,27 +560,32 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
         // Wait for the archive to finish
         stream.on("close", async () => {
             // Send the zip file as a response
-            res.download(zipFilePath, zipFileName, async (err) => {
+            res.download(zipFilePath, zipFileName, async (downloadErr) => {
                 // Clean up the temporary zip file after sending
                 await fs.unlink(zipFilePath).catch(() => {});
                 await output.close();
-                if (err) {
-                    console.error("Error sending zip file:", err);
+                if (downloadErr) {
+                    console.error("Error sending zip file:", downloadErr);
                 }
+            });
+
+            res.status(200).json({ 
+                message: "Files downloaded successfully!",
+                undownloadedFiles: lockedFiles
             });
         });
 
-        // Increase download limit on files that apply
-        const fileShares = await prisma.fileLink.findMany({ where: { fileId: { in: files.map((file: { id: string }) => file.id) } } });
-        for (const fileShare of fileShares) {
-            if (fileShare.maxDownloads !== null) {
+        // Increase download limit only for files that were successfully included in the zip
+        for (const fileLink of spaceLink.fileLinks) {
+            const isFileLocked = lockedFiles.some(lockedFile => lockedFile.id === fileLink.fileId);
+            if (!isFileLocked && fileLink.maxDownloads !== null && fileLink.spaceLinkId === spaceId) {
                 await prisma.fileLink.update({ 
-                    where: { id: fileShare.id },
-                    data: { downloads: (fileShare.downloads ?? 0) + 1 }
+                    where: { id: fileLink.id },
+                    data: { downloads: (fileLink.downloads ?? 0) + 1 }
                 });
                 
-                if (fileShare.downloads === fileShare.maxDownloads) {
-                    await prisma.fileLink.delete({ where: { id: fileShare.id } });
+                if (fileLink.downloads === fileLink.maxDownloads) {
+                    await prisma.fileLink.delete({ where: { id: fileLink.id } });
                 }
             }
         }
@@ -532,14 +604,25 @@ export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<vo
         return;
     }
 
-    const { spaceId, spacePassword } = req.params;
+    const { spaceId } = req.params;
+    const { spacePassword, shareSecret } = req.query;
     try {
+
+        const spaceLink = await prisma.spaceLink.findFirst({ 
+            where: { spaceId, shareSecret: shareSecret as string},
+            include: { fileLinks: true } 
+        });
+
+        if (!spaceLink) {
+            res.status(404).json({ error: "Space share link not valid" });
+            return;
+        }
 
         const space = await prisma.space.findFirst({
             where: { id: spaceId },
             include: {
-                createdBy: { select: { id: true, username: true, email: true } },
-                files: true,
+                createdBy: { select: { username: true} },
+                files: { select: { id: true, name: true, password: true } },
                 spaceLinks: true,
             },
         });
@@ -549,12 +632,32 @@ export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        if (space.password && space.password !== spacePassword) {
+        if (space.password && await bcrypt.compare(spacePassword as string, space.password)) {
             res.status(401).json({ error: "Incorrect password" });
             return;
         }
 
-        res.status(200).json({ space });
+        const filesWithLinks = space.files.map(file => {
+            const fileLink = spaceLink.fileLinks.find((link) => link.fileId === file.id);
+            if (fileLink) {
+                return {
+                    ...file,
+                    locked: !!file.password, // Convert to boolean
+                    url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
+                    expiresAt: fileLink.expiresAt,
+                    downloadsRemaining: fileLink.maxDownloads !== null ? fileLink.maxDownloads - (fileLink.downloads ?? 0) : "unlimited"
+                };
+            }
+            return file;
+        });
+
+        res.status(200).json({ 
+            id: space.id,
+            name: space.name,
+            createdBy: space.createdBy.username,
+            locked: !!space.password,
+            files: filesWithLinks
+        });
     } catch (error) {
         console.error("Error retrieving space info:", error);
         res.status(500).json({ error: "Internal server error" });
