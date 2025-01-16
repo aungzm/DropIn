@@ -128,7 +128,6 @@ router.post(
         param("fileId", "File ID is required").notEmpty(),
         body("maxDownloads").optional({ nullable: true }).isInt().withMessage("Max Downloads must be an integer"),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
-        body("notes", "Notes must be a string").isString(),
     ],
     addFileShareLink
 );
@@ -143,7 +142,6 @@ router.patch(
         param("shareSecret", "Share Secret is required").notEmpty(),
         body("maxDownloads").optional({ nullable: true }).isInt().withMessage("Max Downloads must be an integer"),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
-        body("notes", "Notes must be a string").isString(),
     ],
     modifyFileShareLink
 );
@@ -156,7 +154,6 @@ router.post(
     [
         param("spaceId", "Space ID is required").notEmpty(),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
-        body("notes", "Notes must be a string").isString(),
     ],
     addSpaceShareLink
 );
@@ -170,7 +167,6 @@ router.patch(
         param("spaceId", "Space ID is required").notEmpty(),
         param("shareSecret", "Share Secret is required").notEmpty(),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
-        body("notes", "Notes must be a string").isString(),
         body("maxDownloads").optional({ nullable: true }).isInt().withMessage("Max Downloads must be an integer"),
     ],
     modifySpaceShareLink

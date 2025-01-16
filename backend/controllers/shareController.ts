@@ -28,7 +28,7 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
     }
 
     const { fileId } = req.params;
-    const { maxDownloads, expiresAt, notes } = req.body;
+    const { maxDownloads, expiresAt } = req.body;
 
     try {
         const file = await prisma.file.findUnique({ where: { id: fileId } });
@@ -45,7 +45,6 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
                 shareSecret,
                 maxDownloads,
                 expiresAt,
-                notes,
             },
         });
 
@@ -55,7 +54,6 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
             url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
             maxDownloads: fileLink.maxDownloads ?? "unlimited",
             remainingDownloads: fileLink.maxDownloads ?? "unlimited",
-            notes: fileLink.notes,
             expiresAt: fileLink.expiresAt
         });
     } catch (error) {
@@ -73,7 +71,7 @@ export const modifyFileShareLink = async (req: Request, res: Response): Promise<
     }
 
     const { fileId, shareSecret } = req.params;
-    const { expiresAt, maxDownloads, notes } = req.body; // Time limit in minutes
+    const { expiresAt, maxDownloads } = req.body; // Time limit in minutes
 
     try {
         const file = await prisma.file.findFirst({ where: { id: fileId } });
@@ -90,7 +88,7 @@ export const modifyFileShareLink = async (req: Request, res: Response): Promise<
 
         await prisma.fileLink.update({
             where: { id: fileLink.id },
-            data: { expiresAt, maxDownloads, notes},
+            data: { expiresAt, maxDownloads },
         });
         res.status(200).json({ 
             message: "File share link created successfully!", 
@@ -115,7 +113,7 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
     }
 
     const { spaceId } = req.params;
-    const { expiresAt, notes } = req.body; // Time limit in minutes
+    const { expiresAt } = req.body; // Time limit in minutes
 
     try {
         const space = await prisma.space.findUnique({ where: { id: spaceId }, 
@@ -135,7 +133,6 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
                 spaceId,
                 shareSecret,
                 expiresAt,
-                notes
             },
         });
 
@@ -147,7 +144,6 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
                         shareSecret: generateShareSecret(),
                         expiresAt,
                         spaceLinkId: spaceLink.id,
-                        notes: "Shared from space link",
                     },
                 });
             }
@@ -160,7 +156,6 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
             expiresAt: spaceLink.expiresAt,
             maxDownloads: "unlimited",
             remainingDownloads: "unlimited",
-            notes: spaceLink.notes
         });
     } catch (error) {
         console.error("Error creating space share link:", error);
@@ -176,7 +171,7 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
     }
     
     const { spaceId, shareSecret } = req.params;
-    const { expiresAt, notes } = req.body; // Time limit in minutes
+    const { expiresAt } = req.body; // Time limit in minutes
 
     try {
         const space = await prisma.space.findFirst({ where: { id: spaceId } });
@@ -195,7 +190,7 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
 
         await prisma.spaceLink.update({
             where: { id: spaceLink.id },
-            data: { expiresAt, notes },
+            data: { expiresAt },
         });
 
         for (const fileLink of spaceLink.fileLinks) {
@@ -240,7 +235,6 @@ export const getfileShareInfo = async (req: Request, res: Response): Promise<voi
             expiresAt: link.expiresAt,
             maxDownloads: link.maxDownloads ?? "unlimited",
             remainingDownloads: link.maxDownloads ? link.maxDownloads - (link.downloads ?? 0) : "unlimited",
-            notes: link.notes,
         }));
 
         res.status(200).json(linksInfo);
@@ -269,7 +263,6 @@ export const getSpaceShareInfo = async (req: Request, res: Response): Promise<vo
             id: link.id,
             url: process.env.BASE_URL + "/shares/space/" + link.shareSecret,
             expiresAt: link.expiresAt,
-            notes: link.notes,
             maxDownloads: "unlimited",
             remainingDownloads: "unlimited",
         }));

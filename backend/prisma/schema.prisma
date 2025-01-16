@@ -66,7 +66,6 @@ model FileLink {
   maxDownloads Int?
   expiresAt    DateTime?
   createdAt    DateTime   @default(now())
-  notes        String
 }
 
 model SpaceLink {
@@ -77,7 +76,6 @@ model SpaceLink {
   shareSecret String
   expiresAt   DateTime?
   createdAt   DateTime   @default(now())
-  notes        String?
 }
 
 model ProfilePic {
