@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { PrismaClient } from "@prisma/client";
 import { fileExists } from "../utils/fileHelper";
+import { generateShareSecret } from "../utils/shareHelper";
 import crypto from "crypto";
 import path from "path";
 import archiver from "archiver";
@@ -9,15 +10,10 @@ import fs from "fs/promises";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
+
 const envPath = path.resolve(__dirname, "../../.env");
 dotenv.config({ path: envPath });
 const prisma = new PrismaClient();
-
-// Helper function to generate a random share secret
-const generateShareSecret = (): string => {
-    return crypto.randomBytes(5).toString("hex"); // Generates a 10-character string
-};
-
 
 // Add file share link
 export const addFileShareLink = async (req: Request, res: Response): Promise<void> => {

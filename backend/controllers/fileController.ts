@@ -5,6 +5,7 @@ import fs from "fs/promises"
 import bcrypt from "bcryptjs";
 import path from "path";
 import { fileExists } from "../utils/fileHelper";
+import { generateShareSecret } from "../utils/shareHelper";
 
 
 const prisma = new PrismaClient();
@@ -51,6 +52,18 @@ export const fileUpload = async (req: Request, res: Response): Promise<void> => 
                 storageUrl,
             },
         });
+
+        const spaceLink = await prisma.spaceLink.findUnique({ where: { id: spaceId } });
+
+        if (spaceLink){ // If the space is shared, create a file link
+            await prisma.fileLink.create({
+                data: {
+                    fileId: file.id,
+                    spaceLinkId: spaceId,
+                    shareSecret: generateShareSecret(),
+                },
+            });
+        }
 
         res.status(201).json({ message: "File uploaded successfully!", file });
     } catch (error) {
