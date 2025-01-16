@@ -435,23 +435,31 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
 
     const { fileId } = req.params;
     const { shareSecret, password } = req.query;
-    
+
     try {
-        // Fetch the file metadata from the database
-        const file = await prisma.file.findFirst({ where: { id: fileId } });
+        // Fetch the file metadata and file link in a single query
+        const file = await prisma.file.findFirst({
+            where: { id: fileId },
+            include: {
+                fileLinks: {
+                    where: { shareSecret: shareSecret as string }
+                }
+            }
+        });
+
         if (!file) {
-            res.status(404).json({ error: "File not found in the database" });
+            res.status(404).json({ error: "File not found in the database or share link invalid" });
             return;
         }
 
-        const fileLink = await prisma.fileLink.findFirst({ where: { fileId, shareSecret: shareSecret as string } });
+        const fileLink = file.fileLinks[0];
         if (!fileLink) {
             res.status(404).json({ error: "File share link not valid" });
             return;
         }
 
         // Construct the absolute filesystem path
-        const uploadsDir = path.join(__dirname, '../../uploads'); 
+        const uploadsDir = path.join(__dirname, '../../uploads');
         const spaceDir = path.join(uploadsDir, String(file.spaceId));
         const filePath = path.join(spaceDir, file.name);
 
@@ -464,42 +472,44 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
         }
 
         // Check if the file is password-protected
-        if (file.password && !await bcrypt.compare(password as string, file.password)) {
+        if (file.password && !(await bcrypt.compare(password as string, file.password))) {
             res.status(401).json({ error: "Incorrect password" });
             return;
         }
 
         // Send the file for download
-        res.download(filePath, file.name, (err) => {
+        res.download(filePath, file.name, async (err) => {
             if (err) {
                 console.error("Error downloading file:", err);
-                // If headers have already been sent, cannot send a response
                 if (!res.headersSent) {
                     res.status(500).json({ error: "Error occurred while downloading the file" });
                 }
+                return;
+            }
+
+            // Update the download count after successful download
+            if (fileLink.maxDownloads !== null) {
+                const updatedDownloads = (fileLink.downloads ?? 0) + 1;
+
+                // Delete the link if max downloads are reached
+                if (updatedDownloads >= fileLink.maxDownloads) {
+                    await prisma.fileLink.delete({ where: { id: fileLink.id } });
+                } else {
+                    await prisma.fileLink.update({
+                        where: { id: fileLink.id },
+                        data: { downloads: updatedDownloads }
+                    });
+                }
             }
         });
-
-        // Update the download count for the file and delete the share link if max downloads reached
-        const fileShare = await prisma.fileLink.findFirst({ where: { fileId } });
-        if (!fileShare){
-            res.status(404).json({ error: "File not found" });
-        }
-        if (fileShare && fileShare.maxDownloads !== null) {
-            await prisma.fileLink.update({ 
-                where: { id: fileShare.id, shareSecret: shareSecret as string },
-                data: { downloads: (fileShare.downloads ?? 0) + 1 }
-            });
-            if (fileShare.downloads === fileShare.maxDownloads) {
-                await prisma.fileLink.delete({ where: { id: fileShare.id } });
-            }
-        }
-        res.status(200).json({ message: "File downloaded successfully!" });
     } catch (error) {
         console.error("Error downloading file:", error);
-        res.status(500).json({ error: "Internal server error" });
+        if (!res.headersSent) {
+            res.status(500).json({ error: "Internal server error" });
+        }
     }
 };
+
 
 export const guestDownloadAllFiles = async (req: Request, res: Response): Promise<void> => {
     const errors = validationResult(req);
@@ -512,7 +522,6 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
     const { shareSecret } = req.query;
 
     try {
-        // Fetch space name
         const space = await prisma.space.findFirst({
             where: { id: spaceId },
             select: { name: true },
@@ -523,48 +532,54 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
             return;
         }
 
-        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId, shareSecret: shareSecret as string },
-            include: { fileLinks: true }
+        const spaceLink = await prisma.spaceLink.findFirst({
+            where: { spaceId, shareSecret: shareSecret as string },
+            include: { fileLinks: true },
         });
+
         if (!spaceLink) {
             res.status(404).json({ error: "Space share link not valid" });
             return;
         }
 
-        // Fetch files belonging to the specified space
         const files = await prisma.file.findMany({ where: { spaceId } });
+
         if (files.length === 0) {
             res.status(200).json({ message: "No files associated with this space" });
             return;
         }
 
         const uploadsDir = path.join(__dirname, '../../uploads', spaceId);
-        // Define the zip file path
         const tempDir = path.join(__dirname, 'temp');
         await fs.mkdir(tempDir, { recursive: true });
+
         const zipFileName = `space-${space.name}.zip`;
         const zipFilePath = path.join(tempDir, zipFileName);
 
-        // Create a zip archive
-        const output = await fs.open(zipFilePath, 'w');
+        const lockedFiles: Array<{ id: string; name: string }> = [];
+
+        // Create the writable file stream using fs.promises.open
+        const zipFileHandle = await fs.open(zipFilePath, 'w');
+        const writable = zipFileHandle.createWriteStream();
+
+        // Create the archive
         const archive = archiver("zip", { zlib: { level: 9 } });
 
         // Handle archiver errors
-        archive.on("error", async (archiveErr) => {
-            await output.close();
+        archive.on("error", async (err) => {
+            console.error("Error creating archive:", err);
+            await zipFileHandle.close();
             await fs.unlink(zipFilePath).catch(() => {});
-            res.status(500).json({ error: "Failed to create zip archive", details: archiveErr.message });
+            res.status(500).json({ error: "Failed to create zip archive" });
         });
 
-        // Pipe the archive data to the zip file
-        const stream = archive.pipe(output.createWriteStream());
+        // Pipe the archive to the writable stream
+        archive.pipe(writable);
 
-        const lockedFiles: Array<{ id: string; name: string }> = [];
-
-        // Add each file to the archive
+        // Add files to the archive
         for (const file of files) {
             const filePath = path.join(uploadsDir, file.name);
-            if (await fileExists(filePath) && file.password === null) { // Only add files that exist and have no password
+            if (await fileExists(filePath) && file.password === null) {
                 archive.file(filePath, { name: file.name });
             } else {
                 lockedFiles.push({ id: file.id, name: file.name });
@@ -574,44 +589,42 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
         // Finalize the archive
         await archive.finalize();
 
-        // Wait for the archive to finish
-        stream.on("close", async () => {
-            // Send the zip file as a response
-            res.download(zipFilePath, zipFileName, async (downloadErr) => {
-                // Clean up the temporary zip file after sending
+        // Wait for the archive to finish and send it as a response
+        writable.on("finish", async () => {
+            res.download(zipFilePath, zipFileName, async (err) => {
+                // Clean up the temporary zip file
+                await zipFileHandle.close();
                 await fs.unlink(zipFilePath).catch(() => {});
-                await output.close();
-                if (downloadErr) {
-                    console.error("Error sending zip file:", downloadErr);
+
+                if (err) {
+                    console.error("Error sending zip file:", err);
                 }
             });
 
-            res.status(200).json({ 
-                message: "Files downloaded successfully!",
-                undownloadedFiles: lockedFiles
-            });
-        });
+            // Update file link download counts
+            for (const fileLink of spaceLink.fileLinks) {
+                const isFileLocked = lockedFiles.some((lockedFile) => lockedFile.id === fileLink.fileId);
 
-        // Increase download limit only for files that were successfully included in the zip
-        for (const fileLink of spaceLink.fileLinks) {
-            const isFileLocked = lockedFiles.some(lockedFile => lockedFile.id === fileLink.fileId);
-            if (!isFileLocked && fileLink.maxDownloads !== null && fileLink.spaceLinkId === spaceId) {
-                await prisma.fileLink.update({ 
-                    where: { id: fileLink.id },
-                    data: { downloads: (fileLink.downloads ?? 0) + 1 }
-                });
-                
-                if (fileLink.downloads === fileLink.maxDownloads) {
-                    await prisma.fileLink.delete({ where: { id: fileLink.id } });
+                if (!isFileLocked && fileLink.maxDownloads !== null) {
+                    const newDownloads = (fileLink.downloads ?? 0) + 1;
+
+                    await prisma.fileLink.update({
+                        where: { id: fileLink.id },
+                        data: { downloads: newDownloads },
+                    });
+
+                    if (newDownloads >= fileLink.maxDownloads) {
+                        await prisma.fileLink.delete({ where: { id: fileLink.id } });
+                    }
                 }
             }
-        }
-        
+        });
     } catch (error) {
         console.error("Error downloading files:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 };
+
 
 
 export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<void> => {
