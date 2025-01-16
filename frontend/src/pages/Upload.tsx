@@ -147,10 +147,6 @@ const Upload = () => {
       alert('Failed to download all files. Please try again.');
     }
   };
-  
-  const handleCancelSpaceShare = async () => {
-
-  };
 
   const handleDeleteSpace = async () => {
     try {
@@ -163,14 +159,6 @@ const Upload = () => {
     }
   }
 
-  const handleDeleteSpaceShare = async () => {
-    //await api.delete(`/shares/space/${spaceId}`);
-  };
-
-  const handleConfirmSpaceShare = async () => {
-        // const response = await api.post(`/shares/space/${spaceId}`, {
-  
-  }
 
   const handleUploadFiles = async (fileList: FileList) => {
     if (!fileList) return;

@@ -7,6 +7,8 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import LinkModal from './LinkModal';
 import getFileIcon from '../utils/getFileIcon';
+import ShareModal from './ShareModal';
+import { set } from 'react-datepicker/dist/date_utils';
 
 interface FileCardProps {
   className?: string;
@@ -18,6 +20,15 @@ interface FileCardProps {
   onDeleteSuccess: (deletedFileId: string) => void;
 }
 
+interface FileShareData {
+  url: string;
+  expiresAt: Date | null;
+  notes: string;
+  maxDownloads?: number;
+  remainingDownloads?: number;
+}
+
+
 const FileCard: React.FC<FileCardProps> = ({
   fileId,
   fileName,
@@ -26,22 +37,12 @@ const FileCard: React.FC<FileCardProps> = ({
   onRenameSucess,
   onDeleteSuccess
 }) => {
-  
-
-  
-
-  
   const [showModal, setShowModal] = useState(false);
   const [isFileLocked, setIsFileLocked] = useState(locked);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [newFileName, setNewFileName] = useState(fileName.split('.').shift() || ''); // File name without extension
-  const [fileShareurl, setFileShareUrl] = useState('');
-  const [maxDownloads, setMaxDownloads] = useState<number | null>(null);
-  const [expiry, setExpiry] = useState<Date | null>(null);
-  const [newExpiry, setNewExpiry] = useState<Date | null>(null);
-  const [newMaxDownloads, setNewMaxDownloads] = useState<number | null>(null);
-  const [showLinkModal, setShowLinkModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [fileShareData, setFileShareData] = useState<FileShareData[]>([]);
   const fileExtension = fileName.split('.').pop() || ''; // File extension
   
   // "lock" or "unlock"
@@ -147,11 +148,11 @@ const FileCard: React.FC<FileCardProps> = ({
     const fetchFileDetails = async () => {
       try {
         const response = await api.get(`/shares/file/${fileId}`);
-        const fileShare = response.data
-        if (fileShare) {
-          setFileShareUrl(fileShare.url);
-          setMaxDownloads(fileShare.maxDownloads);
-          setExpiry(fileShare.expiresAt);
+        const fileShareLink = response.data
+        if (fileShareLink && Array.isArray(fileShareLink)) {
+          setFileShareData(fileShareLink);
+        } else {
+          setFileShareData([]);
         }
       } catch (error) {
         console.error('Error fetching file details:', error);
@@ -160,46 +161,6 @@ const FileCard: React.FC<FileCardProps> = ({
 
     fetchFileDetails();
   }, [fileId]);
-
-  const handleConfirmFileShare = async () => {
-    setShowShareModal(false);
-    if (newMaxDownloads !== maxDownloads || newExpiry !== expiry) {
-      try {
-        const response = await api.post(`/shares/file/${fileId}`, {
-          maxDownloads: newMaxDownloads,
-          expiry: newExpiry,
-        });
-        setMaxDownloads(newMaxDownloads);
-        setExpiry(newExpiry);
-        setFileShareUrl(response.data.url);
-        setShowLinkModal(true);
-      } catch (error) {
-        console.error('Error sharing file:', error);
-      }
-    } else {
-      // If nothing changed, still show the link modal
-      setShowLinkModal(true);
-    }
-    console.log("Link modal opened", showLinkModal);
-  };
-  
-
-  const handleDeleteFileShare = async () => {
-    try {
-      await api.delete(`/shares/file/${fileId}`);
-      setFileShareUrl('');
-      setMaxDownloads(null);
-      setExpiry(null);
-    } catch (error) {
-      console.error('Error deleting file share:', error);
-    }
-  }
-
-  const handleCancelFileShare = async () => {
-    setShowShareModal(false);
-    setNewExpiry(null);
-    setNewMaxDownloads(null);
-  }
 
   // Decide what text to show in the modal:
   const modalTitle = modalMode === "lock" ? "Lock File" : "Unlock File";
@@ -487,75 +448,18 @@ const FileCard: React.FC<FileCardProps> = ({
           </div>
         </div>
       )}
-      
-      {/* Share Modal */}
-          {showShareModal && (
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-              <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <h3 className="text-lg text-center font-semibold mb-4">Space Access</h3>
-                <div
-                  onSubmit={(e) => {
-                    e.preventDefault();  
-                    handleConfirmFileShare();
-                  }}
-                >
-                  {/* Max Downloads */}
-                  <label className="block font-medium mb-1">Max Downloads</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={maxDownloads ?? "unlimited"}
-                    onChange={(e) => setNewMaxDownloads(e.target.value ? parseInt(e.target.value) : null)}
-                    className="border rounded-lg px-3 py-2 mb-4 w-full"
-                  />
-
-                  {/* Expiry (Using React DatePicker) */}
-                  <label className="block font-medium mb-1">Expiry</label>
-                  <DatePicker
-                    selected={expiry}
-                    onChange={(date) => setNewExpiry(date || null)}
-                    showTimeSelect            // Allows time selection
-                    dateFormat="Pp"          // Formats date and time (e.g. 01/12/2025, 3:42 PM)
-                    className="border rounded-lg px-3 py-2 mb-6 w-full"
-                    placeholderText="Select date & time"
-                  />
-
-                  {/* Buttons */}
-                  <div className="flex gap-4 justify-center">
-                    {/* Delete */}
-                    <button
-                      type="button"
-                      onClick={handleDeleteFileShare}
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg w-1/3"
-                    >
-                      Delete
-                    </button>
-                    {/* Cancel */}
-                    <button
-                      type="button"
-                      onClick={handleCancelFileShare}
-                      className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg w-1/3"
-                    >
-                      Cancel
-                    </button>
-                    {/* Confirm */}
-                    <button
-                      onClick={handleConfirmFileShare}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-1/3"
-                    >
-                      Confirm
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          {/* Link Modal */}
-          <LinkModal
-            showLinkModal={showLinkModal}
-            shareUrl={fileShareurl}
-            onClose={() => setShowLinkModal(false)}
-          />        
+      {fileId && showShareModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <ShareModal
+              isOpen={showShareModal}
+              onClose={() => setShowShareModal(false)}
+              spaceShareData={fileShareData}
+              spaceIdOrFileId={fileId}
+              type="file"
+            />
+          </div>
+        )}
+            
     </div>
   );
 };
