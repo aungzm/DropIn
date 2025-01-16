@@ -14,6 +14,7 @@ function LinkModal({ isOpen: showLinkModal, shareUrl, atExpiry, onClose }: LinkM
   const [copied, setCopied] = useState(false);
 
   if (!showLinkModal) return null;
+  if (!shareUrl) return null;
 
   const handleCopy = async () => {
     try {
