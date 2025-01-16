@@ -97,19 +97,25 @@ router.get(
 
 // Remove file share link
 router.delete(
-    "/file/:fileId",
+    "/file/:fileId/:shareSecret",
     authenticateToken,
     verifyAccountOwnershipOrAdmin,
-    [ param("fileId", "File ID is required").notEmpty() ],
+    [ 
+      param("fileId", "File ID is required").notEmpty(), 
+      param("shareSecret", "Share Secret is required").notEmpty(),
+    ],
     removeFileShareLink
 );
 
 // Remove space share link
 router.delete(
-    "/space/:spaceId",
+    "/space/:spaceId/:shareSecret",
     authenticateToken,
     verifyAccountOwnershipOrAdmin,
-    [ param("spaceId", "Space ID is required").notEmpty() ],
+    [ 
+      param("spaceId", "Space ID is required").notEmpty(),
+      param("shareSecret", "Share Secret is required").notEmpty(),
+    ],
     removeSpaceShareLink
 );
 
@@ -129,11 +135,12 @@ router.post(
 
 // Modify file share link
 router.patch(
-    "/file/:fileId",
+    "/file/:fileId/:shareSecret",
     authenticateToken,
     verifyAccountOwnershipOrAdmin,
     [
         param("fileId", "File ID is required").notEmpty(),
+        param("shareSecret", "Share Secret is required").notEmpty(),
         body("maxDownloads").optional({ nullable: true }).isInt().withMessage("Max Downloads must be an integer"),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
         body("notes", "Notes must be a string").isString(),
@@ -156,13 +163,15 @@ router.post(
 
 // Modify space share link
 router.patch(
-    "/space/:spaceId",
+    "/space/:spaceId/:shareSecret",
     authenticateToken,
     verifyAccountOwnershipOrAdmin,
     [
         param("spaceId", "Space ID is required").notEmpty(),
+        param("shareSecret", "Share Secret is required").notEmpty(),
         body("expiresAt").optional({ nullable: true }).isISO8601().withMessage("ExpiresAt must be ISO8601 date"),
         body("notes", "Notes must be a string").isString(),
+        body("maxDownloads").optional({ nullable: true }).isInt().withMessage("Max Downloads must be an integer"),
     ],
     modifySpaceShareLink
 );

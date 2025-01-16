@@ -8,6 +8,16 @@ import Modal from "../components/Modal";
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import LinkModal from "../components/LinkModal";
+import ShareModal from "../components/ShareModal";
+
+interface SpaceShareData {
+  url: string;
+  expiresAt: Date | null;
+  notes: string;
+  maxDownloads?: number;
+  remainingDownloads?: number;
+}
+
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -23,8 +33,7 @@ const Upload = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
   const [files, setFiles] = useState<any[]>([]);
-  const [spaceShareUrl , setSpaceShareUrl] = useState("");
-  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [spaceShareData, setSpaceShareData] = useState<SpaceShareData[]>([]);
 
   // "lock" or "unlock"
   const [modalMode, setModalMode] = useState("lock");
@@ -37,21 +46,17 @@ const Upload = () => {
     useEffect(() => {
       const fetchSpaceDetails = async () => {
         try {
-          const firstresponse = (await api.get(`/spaces/${spaceId}`));
-          const response = await api.get(`/shares/space/${spaceId}`);
-          const spaceLink = response.data;
-          const space = firstresponse.data.space;
-          if (spaceLink) {
-            setExpiry(spaceLink.expiry);
-            setMaxDownloads(spaceLink.maxDownloads);
-            setSpaceShareUrl(spaceLink.url);
-          } else {
-            setExpiry(null);
-            setMaxDownloads(null);
-            setSpaceShareUrl("");
-          }
+          const spaceInfoResponse = (await api.get(`/spaces/${spaceId}`));
+          const spaceLinkResponse = await api.get(`/shares/space/${spaceId}`);
+          const spaceLink = spaceLinkResponse.data;
+          const space = spaceInfoResponse.data.space;
           setSpaceName(space.name);
           setIsSpaceLocked(space.password === "Yes");
+          if (spaceLink && Array.isArray(spaceLink)) {
+            setSpaceShareData(spaceLink);
+          } else {
+              setSpaceShareData([]);
+          }
     
           // Add progress: 100 to already uploaded files
           const fetchedFiles = (space.files || []).map((file) => ({
@@ -144,9 +149,7 @@ const Upload = () => {
   };
   
   const handleCancelSpaceShare = async () => {
-    setShowShareModal(false);
-    setNewExpiry(null);
-    setNewMaxDownloads(null);
+
   };
 
   const handleDeleteSpace = async () => {
@@ -161,45 +164,12 @@ const Upload = () => {
   }
 
   const handleDeleteSpaceShare = async () => {
-    setShowShareModal(false);
-    setExpiry(null);
-    setMaxDownloads(null);
-    setSpaceShareUrl("");
-
-    if (spaceShareUrl === "") {
-      return;
-    } else {
-      try {
-        await api.delete(`/shares/space/${spaceId}`);
-        alert("Space share link deleted successfully!");
-      } catch (error) {
-        console.error("Error deleting space share link:", error);
-        alert("Failed to delete space share link. Please try again.");
-      }
-    }
+    //await api.delete(`/shares/space/${spaceId}`);
   };
 
   const handleConfirmSpaceShare = async () => {
-    setShowShareModal(false);
-    if (newExpiry !== expiry || newMaxDownloads !== maxDownloads) {
-      setExpiry(newExpiry);
-      setMaxDownloads(newMaxDownloads);
-      try {
-        const response = await api.post(`/shares/space/${spaceId}`, {
-          expiresAt: newExpiry,
-          // maxDownloads: newMaxDownloads,
-        });
-        setSpaceShareUrl(response.data.url);
-        setShowLinkModal(true);
-      } catch (error) {
-        console.error("Error sharing space:", error);
-        alert("Failed to share space. Please try again.");
-      }
-    } else {
-      setShowLinkModal(true); // Show the existing link
-    }    
-    setNewExpiry(null);
-    setMaxDownloads(null);
+        // const response = await api.post(`/shares/space/${spaceId}`, {
+  
   }
 
   const handleUploadFiles = async (fileList: FileList) => {
@@ -648,69 +618,17 @@ const Upload = () => {
           </div>
         </div>
       )}
-      {/* Share Modal */}
-          {showShareModal && (
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-              <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <h3 className="text-lg text-center font-semibold mb-4">Space Access</h3>
-                <form onSubmit={handleConfirmSpaceShare}>
-                  {/* Max Downloads */}
-                  <label className="block font-medium mb-1">Max Downloads</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={maxDownloads ?? "unlimited"}
-                    onChange={(e) => setNewMaxDownloads(e.target.value ? parseInt(e.target.value) : null)}
-                    className="border rounded-lg px-3 py-2 mb-4 w-full"
-                  />
-
-                  {/* Expiry (Using React DatePicker) */}
-                  <label className="block font-medium mb-1">Expiry</label>
-                  <DatePicker
-                    selected={expiry}
-                    onChange={(date) => setNewExpiry(date || null)}
-                    showTimeSelect            // Allows time selection
-                    dateFormat="Pp"          // Formats date and time (e.g. 01/12/2025, 3:42 PM)
-                    className="border rounded-lg px-3 py-2 mb-6 w-full"
-                    placeholderText="Select date & time"
-                  />
-
-                  {/* Buttons */}
-                  <div className="flex gap-4 justify-center">
-                    {/* Delete */}
-                    <button
-                      type="button"
-                      onClick={handleDeleteSpaceShare}
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg w-1/3"
-                    >
-                      Delete
-                    </button>
-                    {/* Cancel */}
-                    <button
-                      type="button"
-                      onClick={handleCancelSpaceShare}
-                      className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg w-1/3"
-                    >
-                      Cancel
-                    </button>
-                    {/* Confirm */}
-                    <button
-                      type="submit"
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-1/3"
-                    >
-                      Confirm
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-          {/* Link Modal */}
-          <LinkModal
-            showLinkModal={showLinkModal}
-            shareUrl={spaceShareUrl}
-            onClose={() => setShowLinkModal(false)}
-          />
+        {spaceId && showShareModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <ShareModal
+              isOpen={showShareModal}
+              onClose={() => setShowShareModal(false)}
+              spaceShareData={spaceShareData}
+              spaceIdOrFileId={spaceId}
+              type="space"
+            />
+          </div>
+        )}
     </div>
   );
 };

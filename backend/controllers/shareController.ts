@@ -53,7 +53,8 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
             message: "File share link created successfully!", 
             fileId: fileLink.fileId,
             url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
-            maxDownloads: fileLink.maxDownloads,
+            maxDownloads: fileLink.maxDownloads ?? "unlimited",
+            remainingDownloads: fileLink.maxDownloads ?? "unlimited",
             expiresAt: fileLink.expiresAt
         });
     } catch (error) {
@@ -70,7 +71,7 @@ export const modifyFileShareLink = async (req: Request, res: Response): Promise<
         return;
     }
 
-    const { fileId } = req.params;
+    const { fileId, shareSecret } = req.params;
     const { expiresAt, maxDownloads, notes } = req.body; // Time limit in minutes
 
     try {
@@ -80,7 +81,7 @@ export const modifyFileShareLink = async (req: Request, res: Response): Promise<
             return;
         }
 
-        const fileLink = await prisma.fileLink.findFirst({ where: { fileId } });
+        const fileLink = await prisma.fileLink.findFirst({ where: { fileId, shareSecret } });
         if (!fileLink) {
             res.status(404).json({ error: "File link not found" });
             return;
@@ -95,6 +96,7 @@ export const modifyFileShareLink = async (req: Request, res: Response): Promise<
             fileId: fileLink.fileId,
             url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
             maxDownloads: fileLink.maxDownloads,
+            remainingDownloads: fileLink.maxDownloads === null ? "unlimited" : fileLink.maxDownloads - (fileLink.downloads ?? 0),
             expiresAt: fileLink.expiresAt
         });
     } catch (error) {
@@ -154,7 +156,10 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
             message: "Space share link created successfully!", 
             spaceId: spaceLink.spaceId,
             url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
-            expiresAt: spaceLink.expiresAt
+            expiresAt: spaceLink.expiresAt,
+            maxDownloads: "unlimited",
+            remainingDownloads: "unlimited",
+            notes: spaceLink.notes
         });
     } catch (error) {
         console.error("Error creating space share link:", error);
@@ -169,7 +174,7 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
         return;
     }
     
-    const { spaceId } = req.params;
+    const { spaceId, shareSecret } = req.params;
     const { expiresAt, notes } = req.body; // Time limit in minutes
 
     try {
@@ -179,7 +184,7 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
             return;
         }
 
-        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId },
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId, shareSecret },
             include: { fileLinks: true } 
         });
         if (!spaceLink) {
@@ -203,6 +208,8 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
             message: "Space share modified successfully!", 
             spaceId: spaceLink.spaceId,
             url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
+            maxDownloads: "unlimited",
+            remainingDownloads: "unlimited",
             expiresAt: spaceLink.expiresAt 
         });
 
@@ -250,18 +257,23 @@ export const getSpaceShareInfo = async (req: Request, res: Response): Promise<vo
         return;
     }
     const { spaceId } = req.params;
-    const { shareSecret } = req.query;
     try {
-        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId, shareSecret: shareSecret as string } });
-        if (!spaceLink) {
-            res.status(200).json({ message: "Space share link not found" });
+        const spaceLinks = await prisma.spaceLink.findMany({ where: { spaceId } });
+        if (!spaceLinks || spaceLinks.length === 0) {
+            res.status(200).json([]);
             return;
         }
 
-        res.status(200).json({
-            url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
-            expiresAt: spaceLink.expiresAt,
-        });
+        const linksInfo = spaceLinks.map(link => ({
+            id: link.id,
+            url: process.env.BASE_URL + "/shares/space/" + link.shareSecret,
+            expiresAt: link.expiresAt,
+            notes: link.notes,
+            maxDownloads: "unlimited",
+            remainingDownloads: "unlimited"
+        }));
+
+        res.status(200).json(linksInfo);
     } catch (error) {
         console.error("Error retrieving space share info:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -276,11 +288,10 @@ export const removeFileShareLink = async (req: Request, res: Response): Promise<
         return;
     }
 
-    const { fileId } = req.params;
-    const { shareSecret } = req.query;
+    const { fileId, shareSecret } = req.params;
 
     try {
-        const fileLink = await prisma.fileLink.findFirst({ where: { fileId, shareSecret: shareSecret as string } });
+        const fileLink = await prisma.fileLink.findFirst({ where: { fileId, shareSecret } });
         if (!fileLink) {
             res.status(404).json({ error: "File share link not found" });
             return;
@@ -292,7 +303,7 @@ export const removeFileShareLink = async (req: Request, res: Response): Promise<
 
         await prisma.fileLink.delete({ where: { id: fileLink.id } });
 
-        res.status(200).json({ message: "File share link removed successfully!" });
+        res.status(204).json({ message: "File share link removed successfully!" });
     } catch (error) {
         console.error("Error removing file share link:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -307,10 +318,10 @@ export const removeSpaceShareLink = async (req: Request, res: Response): Promise
         return;
     }
 
-    const { spaceId } = req.params;
+    const { spaceId, shareSecret } = req.params;
 
     try {
-        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId },
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId, shareSecret },
             include: { fileLinks: true } 
         });
 
@@ -323,7 +334,7 @@ export const removeSpaceShareLink = async (req: Request, res: Response): Promise
 
         await prisma.spaceLink.delete({ where: { id: spaceLink.id } });
 
-        res.status(200).json({ message: "Space share link removed successfully!" });
+        res.status(204).json({ message: "Space share link removed successfully!" });
     } catch (error) {
         console.error("Error removing space share link:", error);
         res.status(500).json({ error: "Internal server error" });
