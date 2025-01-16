@@ -239,7 +239,6 @@ const Upload = () => {
   const modalTitle = modalMode === "lock" ? "Lock Space" : "Unlock Space";
   const decisionText = modalMode === "lock" ? "Lock" : "Unlock";
   return (
-   
     <div className="min-h-screen bg-white">
         <Navbar/>
       {/* Top bar */}

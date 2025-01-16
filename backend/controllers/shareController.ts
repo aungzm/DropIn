@@ -657,8 +657,9 @@ export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<vo
         const filesWithLinks = space.files.map(file => {
             const fileLink = spaceLink.fileLinks.find((link) => link.fileId === file.id);
             if (fileLink) {
+                const { password, ...fileWithoutPassword } = file; // Remove password from response
                 return {
-                    ...file,
+                    ...fileWithoutPassword,
                     locked: !!file.password, // Convert to boolean
                     url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
                     expiresAt: fileLink.expiresAt,
