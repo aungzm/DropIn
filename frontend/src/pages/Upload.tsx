@@ -301,7 +301,7 @@ const Upload = () => {
 
         {/* Share*/}
         <button
-          className="hover:text-blue-700"
+          className={`${spaceShareData !== null ? 'text-blue-700' : 'text-gray-500'} hover:text-blue-700`}
           title="Share" 
           onClick={() => {
             setShowShareModal(true);
@@ -320,7 +320,7 @@ const Upload = () => {
         >
           <Link size={20}/>
         </button>
-        
+
         {/* Delete */}
         <button
           className="text-red-600 hover:text-red-700"

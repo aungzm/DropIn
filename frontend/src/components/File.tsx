@@ -7,6 +7,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import getFileIcon from '../utils/getFileIcon';
 import ShareModal from './ShareModal';
 import { Share2, LockKeyhole, LockKeyholeOpen, Trash2, Download, Pencil } from 'lucide-react';
+import LinkModal from './LinkModal';
 
 interface FileCardProps {
   className?: string;
@@ -21,10 +22,10 @@ interface FileCardProps {
 interface FileShareData {
   url: string;
   expiresAt: Date | null;
-  notes: string;
-  maxDownloads?: number;
-  remainingDownloads?: number;
+  maxDownloads?: number | string;
+  remainingDownloads?: number | string;
 }
+
 
 
 const FileCard: React.FC<FileCardProps> = ({
@@ -40,7 +41,8 @@ const FileCard: React.FC<FileCardProps> = ({
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [newFileName, setNewFileName] = useState(fileName.split('.').shift() || ''); // File name without extension
   const [showShareModal, setShowShareModal] = useState(false);
-  const [fileShareData, setFileShareData] = useState<FileShareData[]>([]);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [fileShareData, setFileShareData] = useState<FileShareData | null >(null);
   const fileExtension = fileName.split('.').pop() || ''; // File extension
   
   // "lock" or "unlock"
@@ -147,10 +149,10 @@ const FileCard: React.FC<FileCardProps> = ({
       try {
         const response = await api.get(`/shares/file/${fileId}`);
         const fileShareLink = response.data
-        if (fileShareLink && Array.isArray(fileShareLink)) {
+        if (fileShareLink) {
           setFileShareData(fileShareLink);
         } else {
-          setFileShareData([]);
+          setFileShareData(null);
         }
       } catch (error) {
         console.error('Error fetching file details:', error);
@@ -332,13 +334,24 @@ const FileCard: React.FC<FileCardProps> = ({
             <ShareModal
               isOpen={showShareModal}
               onClose={() => setShowShareModal(false)}
+              onDelete={() => setShowShareModal(false)}
+              updateShareData={(data) => setFileShareData(data)}
               spaceShareData={fileShareData}
               spaceIdOrFileId={fileId}
               type="file"
             />
           </div>
         )}
-            
+      
+      {/* Link Modal */}
+      {fileId && showLinkModal && fileShareData && (
+        <LinkModal
+        isOpen={showLinkModal}
+        shareUrl={fileShareData.url}
+        atExpiry={fileShareData.expiresAt}
+        onClose={() => setShowLinkModal(false)}
+      />
+      )}
     </div>
   );
 };
