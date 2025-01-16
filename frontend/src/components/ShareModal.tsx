@@ -34,6 +34,7 @@ const ShareManagement: React.FC<ShareManagementProps> = ({
   const [editingShare, setEditingShare] = useState<boolean>(!!spaceShareData);
 
   if (!isOpen) return null;
+  console.log("is it editing", editingShare);
 
   const addNewShare = async (maxDownloads: number | null, expiresAt: string | null) => {
     try {

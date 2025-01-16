@@ -93,7 +93,7 @@ function SpaceSharePage() {
   async function spaceAccess(spaceId: string) {
     try {
       console.log("space id is:", spaceId);
-      const response = await api.get(`/shares/space/${spaceId}/access`);
+      const response = await api.get(`/shares/space/${spaceId}/access?shareSecret=${shareSecret}`);
       console.log("Accessed space data:", response.data);
       setSpaceData(response.data);
       setSpaceState(true);
@@ -142,6 +142,7 @@ function SpaceSharePage() {
                     fileId={file.id}
                     fileName={file.name}
                     locked={file.locked}
+                    fileUrl={file.url}
                   />
                 ))}
             </div>

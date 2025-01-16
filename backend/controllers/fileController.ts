@@ -53,13 +53,14 @@ export const fileUpload = async (req: Request, res: Response): Promise<void> => 
             },
         });
 
-        const spaceLink = await prisma.spaceLink.findUnique({ where: { id: spaceId } });
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId } });
 
         if (spaceLink){ // If the space is shared, create a file link
+            console.log("Creating file link for shared space");
             await prisma.fileLink.create({
                 data: {
                     fileId: file.id,
-                    spaceLinkId: spaceId,
+                    spaceLinkId: spaceLink.id,
                     shareSecret: generateShareSecret(),
                 },
             });

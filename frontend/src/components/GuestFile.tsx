@@ -10,12 +10,14 @@ interface GuestFileCardProps {
   className?: string;
   fileName: string;
   locked: boolean;
+  fileUrl: string;
 }
 
 const FileCard: React.FC<GuestFileCardProps> = ({
   fileId,
   fileName,
   locked,
+  fileUrl,
 }) => {
   const [isFileLocked, setIsFileLocked] = useState(locked);
   const fileExtension = fileName.split('.').pop() || ''; // File extension
@@ -23,26 +25,32 @@ const FileCard: React.FC<GuestFileCardProps> = ({
   // "lock" or "unlock"
   const fileIcon = getFileIcon(fileExtension);
   const onDownloadClick = async () => {
-    try {
-      const response = await api.get(`/files/${fileId}/download`, {
-        responseType: 'blob', // Ensure response is treated as binary data
-      });
-  
-      // Create a download link and trigger a click
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName); 
-      document.body.appendChild(link);
-      link.click();
-  
-      // Clean up the URL object and link element
-      window.URL.revokeObjectURL(url);
-      link.remove();
-    } catch (error) {
-      console.error('Error during downloading:', error);
-      alert('Failed to download the file. Please try again.');
+    if (!fileUrl) {
+      console.error('fileUrl is undefined or null.');
+      alert('Unable to download the file because the URL is missing.');
+      return;
     }
+    const shareSecret = fileUrl.split('/').pop();
+      try {
+        const response = await api.get(`/shares/file/${fileId}/download?shareSecret=${shareSecret}`, {
+          responseType: 'blob', // Ensure response is treated as binary data
+        });
+    
+        // Create a download link and trigger a click
+        const localUrl = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = localUrl;
+        link.setAttribute('download', fileName); 
+        document.body.appendChild(link);
+        link.click();
+    
+        // Clean up the URL object and link element
+        window.URL.revokeObjectURL(localUrl);
+        link.remove();
+      } catch (error) {
+        console.error('Error during downloading:', error);
+        alert('Failed to download the file. Please try again.');
+      }
   };
 
   return (

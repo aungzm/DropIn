@@ -47,7 +47,7 @@ router.get(
     [
         param("spaceId", "Space ID is required").notEmpty(),
         query("spacePassword").optional().isString().withMessage("Space Password must be a String"),
-        query("shareSecret").optional().isString().withMessage("Share Secret must be a string"),
+        query("shareSecret").isString().withMessage("Share Secret must be a string"),
     ],
     getSpaceInfoGuest
 );
