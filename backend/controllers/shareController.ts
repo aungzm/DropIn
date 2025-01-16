@@ -623,11 +623,11 @@ export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<vo
 
     const { spaceId } = req.params;
     const { spacePassword, shareSecret } = req.query;
-    try {
 
-        const spaceLink = await prisma.spaceLink.findFirst({ 
-            where: { spaceId, shareSecret: shareSecret as string},
-            include: { fileLinks: true } 
+    try {
+        const spaceLink = await prisma.spaceLink.findFirst({
+            where: { spaceId, shareSecret: shareSecret as string },
+            include: { fileLinks: true },
         });
 
         if (!spaceLink) {
@@ -638,7 +638,7 @@ export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<vo
         const space = await prisma.space.findFirst({
             where: { id: spaceId },
             include: {
-                createdBy: { select: { username: true} },
+                createdBy: { select: { username: true } },
                 files: { select: { id: true, name: true, password: true } },
                 spaceLinks: true,
             },
@@ -649,32 +649,39 @@ export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        if (space.password && await bcrypt.compare(spacePassword as string, space.password)) {
+        if (space.password && !(await bcrypt.compare(spacePassword as string, space.password))) {
             res.status(401).json({ error: "Incorrect password" });
             return;
         }
 
-        const filesWithLinks = space.files.map(file => {
+        const filesWithLinks = space.files.map((file) => {
             const fileLink = spaceLink.fileLinks.find((link) => link.fileId === file.id);
             if (fileLink) {
                 const { password, ...fileWithoutPassword } = file; // Remove password from response
                 return {
                     ...fileWithoutPassword,
                     locked: !!file.password, // Convert to boolean
-                    url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
+                    url: `${process.env.BASE_URL}/shares/file/${fileLink.shareSecret}`,
                     expiresAt: fileLink.expiresAt,
-                    downloadsRemaining: fileLink.maxDownloads !== null ? fileLink.maxDownloads - (fileLink.downloads ?? 0) : "unlimited"
+                    downloadsRemaining:
+                        fileLink.maxDownloads !== null
+                            ? fileLink.maxDownloads - (fileLink.downloads ?? 0)
+                            : "unlimited",
                 };
             }
-            return file;
+            return {
+                id: file.id,
+                name: file.name,
+                locked: !!file.password,
+            }; // Return file data without link if no fileLink is found
         });
 
-        res.status(200).json({ 
+        res.status(200).json({
             id: space.id,
             name: space.name,
             createdBy: space.createdBy.username,
             locked: !!space.password,
-            files: filesWithLinks
+            files: filesWithLinks, // Correctly return the processed files
         });
     } catch (error) {
         console.error("Error retrieving space info:", error);

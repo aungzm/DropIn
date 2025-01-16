@@ -130,38 +130,47 @@ const ShareManagement: React.FC<ShareManagementProps> = ({
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <div className="space-y-3 mb-6">
-          {spaceShareData.map((share) => {
-            return (
-              <div key={share.url} className="flex items-center gap-4">
-                <div className="flex-1 p-2 bg-[#1a4d6d] text-white rounded truncate">
-            {share.notes}
-                </div>
-                <div className="flex-1 p-2 bg-[#1a4d6d] text-white rounded truncate">
-            {share.url}
-                </div>
-                <div className="flex gap-2">
-            <button
-              className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              onClick={() => openQrModal(share.url)}
-            >
-              <QrCode size={20} />
-            </button>
-            <button
-              className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              onClick={() => openEditModal(share)}
-            >
-              <Edit size={20} />
-            </button>
-            <button
-              className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
-              onClick={() => handleDeleteShare(share.url)}
-            >
-              <Trash size={20} />
-            </button>
-                </div>
+      {spaceShareData.map((share) => {
+          return (
+            <div key={share.url} className="flex items-center gap-4">
+              <div className="flex-1 p-2 bg-[#1a4d6d] text-white rounded truncate">
+                {share.notes}
               </div>
-            );
-          })}
+              <div 
+                className="flex-1 p-2 bg-[#1a4d6d] text-white rounded truncate cursor-pointer hover:bg-[#245d82] relative group"
+                onClick={() => {
+                  navigator.clipboard.writeText(share.url);
+                }}
+                title="Click to copy URL"
+              >
+                {share.url}
+                <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  Click to copy
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  onClick={() => openQrModal(share.url)}
+                >
+                  <QrCode size={20} />
+                </button>
+                <button
+                  className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  onClick={() => openEditModal(share)}
+                >
+                  <Edit size={20} />
+                </button>
+                <button
+                  className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
+                  onClick={() => handleDeleteShare(share.url)}
+                >
+                  <Trash size={20} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex justify-center gap-4">
@@ -187,7 +196,7 @@ const ShareManagement: React.FC<ShareManagementProps> = ({
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Name/Notes</label>
+                <label className="block text-sm font-medium mb-1">Name</label>
                 <input
                   type="text"
                   value={notes}
