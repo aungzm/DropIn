@@ -56,7 +56,6 @@ export const fileUpload = async (req: Request, res: Response): Promise<void> => 
         const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId } });
 
         if (spaceLink){ // If the space is shared, create a file link
-            console.log("Creating file link for shared space");
             await prisma.fileLink.create({
                 data: {
                     fileId: file.id,
@@ -172,7 +171,6 @@ export const fileRename = async (req: Request, res: Response): Promise<void> => 
 
         try {
             await fs.rename(currentFilePath, newFilePath); // Rename the physical file
-            console.log(`File renamed from ${currentFilePath} to ${newFilePath}`);
         } catch (err) {
             console.error(`Error renaming file: ${currentFilePath} to ${newFilePath}`, err);
             res.status(500).json({ error: "Failed to rename the physical file" });
@@ -252,6 +250,7 @@ export const downloadFile = async (req: Request, res: Response): Promise<void> =
         // Check if the file exists on the server
         try {
             await fs.access(filePath);
+            console.log("File exists:", filePath);
         } catch {
             res.status(404).json({ error: "File not found on the server" });
             return;
