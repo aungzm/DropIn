@@ -219,21 +219,21 @@ export const getfileShareInfo = async (req: Request, res: Response): Promise<voi
     }
     const { fileId } = req.params;
     try {
-        const fileLinks = await prisma.fileLink.findMany({ where: { fileId, spaceLinkId: null } }); // Only get file links that are not associated with a space
-        if (!fileLinks || fileLinks.length === 0) {
+        const fileLink = await prisma.fileLink.findFirst({ where: { fileId, spaceLinkId: null } }); // Only get file links that are not associated with a space
+        if (!fileLink) {
             res.status(200).json({ message: "No file share links found" });
             return;
         }
 
-        const linksInfo = fileLinks.map(link => ({
-            id: link.id,
-            url: process.env.BASE_URL + "/shares/file/" + link.shareSecret,
-            expiresAt: link.expiresAt,
-            maxDownloads: link.maxDownloads ?? "unlimited",
-            remainingDownloads: link.maxDownloads ? link.maxDownloads - (link.downloads ?? 0) : "unlimited",
-        }));
+        const linkInfo = {
+            id: fileLink.id,
+            url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
+            expiresAt: fileLink.expiresAt,
+            maxDownloads: fileLink.maxDownloads ?? "unlimited",
+            remainingDownloads: fileLink.maxDownloads ? fileLink.maxDownloads - (fileLink.downloads ?? 0) : "unlimited",
+        };
 
-        res.status(200).json(linksInfo);
+        res.status(200).json(linkInfo);
     } catch (error) {
         console.error("Error retrieving file share info:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -249,19 +249,19 @@ export const getSpaceShareInfo = async (req: Request, res: Response): Promise<vo
     }
     const { spaceId } = req.params;
     try {
-        const spaceLinks = await prisma.spaceLink.findMany({ where: { spaceId } });
-        if (!spaceLinks || spaceLinks.length === 0) {
+        const spaceLink = await prisma.spaceLink.findFirst({ where: { spaceId } });
+        if (!spaceLink) {
             res.status(200).json([]);
             return;
         }
 
-        const linksInfo = spaceLinks.map(link => ({
-            id: link.id,
-            url: process.env.BASE_URL + "/shares/space/" + link.shareSecret,
-            expiresAt: link.expiresAt,
+        const linksInfo = {
+            id: spaceLink.id,
+            url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
+            expiresAt: spaceLink.expiresAt,
             maxDownloads: "unlimited",
             remainingDownloads: "unlimited",
-        }));
+        };
 
         res.status(200).json(linksInfo);
     } catch (error) {
