@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import QRCode from 'react-qr-code';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Link } from 'lucide-react';
 
-function LinkModal({ showLinkModal, shareUrl, onClose }) {
+interface LinkModalProps {
+  isOpen: boolean;
+  shareUrl: string;
+  atExpiry: Date | null;
+  onClose: () => void;
+}
+
+function LinkModal({ isOpen: showLinkModal, shareUrl, atExpiry, onClose }: LinkModalProps) {
   const [showCopy, setShowCopy] = useState(false);
   const [copied, setCopied] = useState(false);
 

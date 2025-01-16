@@ -7,14 +7,21 @@ import api from "../api/api";
 import Modal from "../components/Modal";
 import 'react-datepicker/dist/react-datepicker.css';
 import ShareModal from "../components/ShareModal";
-import { Share2, LockKeyhole, LockKeyholeOpen, Trash2, Download, Pencil, Upload as UploadIcon, ArrowLeft} from "lucide-react";
+import LinkModal from "../components/LinkModal";
+import { Share2, LockKeyhole, LockKeyholeOpen, Trash2, Download, Pencil, Upload as UploadIcon, ArrowLeft, Link} from "lucide-react";
 
 interface SpaceShareData {
   url: string;
   expiresAt: Date | null;
-  notes: string;
-  maxDownloads?: number;
-  remainingDownloads?: number;
+  maxDownloads?: number | string;
+  remainingDownloads?: number | string;
+}
+
+interface SpaceLink {
+  url: string;
+  expiresAt: Date | null;
+  maxDownloads: number;
+  remainingDownloads: number;
 }
 
 
@@ -25,14 +32,11 @@ const Upload = () => {
   const [showModal, setShowModal] = useState(false);
   const [spaceName, setSpaceName] = useState("Loading...");
   const [showRenameModal, setShowRenameModal] = useState(false);
-  const [expiry, setExpiry] = useState<Date | null>(null);
-  const [newExpiry, setNewExpiry] = useState<Date | null>(null);
-  const [maxDownloads, setMaxDownloads] = useState<number | null>(null);
-  const [newMaxDownloads, setNewMaxDownloads] = useState<number | null>(null);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
   const [files, setFiles] = useState<any[]>([]);
-  const [spaceShareData, setSpaceShareData] = useState<SpaceShareData[]>([]);
+  const [spaceShareData, setSpaceShareData] = useState<SpaceShareData | null>(null);
 
   // "lock" or "unlock"
   const [modalMode, setModalMode] = useState("lock");
@@ -47,14 +51,14 @@ const Upload = () => {
         try {
           const spaceInfoResponse = (await api.get(`/spaces/${spaceId}`));
           const spaceLinkResponse = await api.get(`/shares/space/${spaceId}`);
-          const spaceLink = spaceLinkResponse.data;
+          const spaceLink: SpaceLink = spaceLinkResponse.data;
           const space = spaceInfoResponse.data.space;
           setSpaceName(space.name);
           setIsSpaceLocked(space.password === "Yes");
-          if (spaceLink && Array.isArray(spaceLink)) {
+          if (spaceLink) {
             setSpaceShareData(spaceLink);
           } else {
-              setSpaceShareData([]);
+              setSpaceShareData(null); // clear the state
           }
     
           // Add progress: 100 to already uploaded files
@@ -295,7 +299,7 @@ const Upload = () => {
           <Pencil  size={20}/>
         </button>
 
-        {/* Share (Example) */}
+        {/* Share*/}
         <button
           className="hover:text-blue-700"
           title="Share" 
@@ -305,7 +309,18 @@ const Upload = () => {
         >
           <Share2 size={20}/>
         </button>
-
+        
+        {/* Link */}
+        <button
+          className="hover:text-blue-700"
+          title="Link"
+          onClick={() => {
+            setShowLinkModal(true);
+          }}
+        >
+          <Link size={20}/>
+        </button>
+        
         {/* Delete */}
         <button
           className="text-red-600 hover:text-red-700"
@@ -468,12 +483,22 @@ const Upload = () => {
           <div className="fixed inset-0 flex items-center justify-center bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <ShareModal
               isOpen={showShareModal}
-              onClose={() => setShowShareModal(false)}
               spaceShareData={spaceShareData}
+              onClose={() => setShowShareModal(false)}
+              updateShareData={(data) => setSpaceShareData(data)}
+              onDelete={() => {setShowShareModal(false); setSpaceShareData(null);}}
               spaceIdOrFileId={spaceId}
               type="space"
             />
           </div>
+        )}
+        {spaceShareData && showLinkModal && (
+          <LinkModal
+            isOpen={showLinkModal}
+            shareUrl={spaceShareData.url}
+            atExpiry={spaceShareData.expiresAt}
+            onClose={() => setShowLinkModal(false)}
+          />
         )}
     </div>
   );
