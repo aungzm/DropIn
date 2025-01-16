@@ -12,15 +12,6 @@ interface GuestFileCardProps {
   locked: boolean;
 }
 
-interface FileShareData {
-  url: string;
-  expiresAt: Date | null;
-  notes: string;
-  maxDownloads?: number;
-  remainingDownloads?: number;
-}
-
-
 const FileCard: React.FC<GuestFileCardProps> = ({
   fileId,
   fileName,
@@ -55,33 +46,29 @@ const FileCard: React.FC<GuestFileCardProps> = ({
   };
 
   return (
-    <div className="relative w-full p-3 bg-white rounded-lg shadow-sm">
+    <div className="relative w-full flex-row p-4 bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Action Icons in top-right */}
-      <div className="absolute top-6 right-5 flex items-center space-x-3 ">
+      <div className="absolute right-5 top-1 bottom-1 flex items-center">
         {/* Unlock SVG */}
-        { isFileLocked && (<button
-          className="text-blue-700 hover:text-blue-800"
-          title="Unlock"
-        >
-          < LockKeyholeOpen size={20} />
-        </button>)}
+        {isFileLocked && (
+          <button className="p-2 text-blue-600 hover:text-blue-700 rounded-full hover:bg-blue-50" title="Unlocked">
+            <LockKeyholeOpen size={20} />
+          </button>
+        )}
         {/* Lock SVG */}
-        { !isFileLocked && (<button
-          className="text-blue-700 hover:text-blue-800"
-          title="Lock"
-        >
-          <LockKeyhole size={20} />
-        </button>)}
-
+        {!isFileLocked && (
+          <button className="p-2 text-blue-600 hover:text-blue-700 rounded-full hover:bg-blue-50" title="Locked">
+            <LockKeyhole size={20} />
+          </button>
+        )}
         {/* Download */}
         <button
           onClick={onDownloadClick}
-          className="text-blue-700 hover:text-blue-800"
-          title="Download"
-        >
+          className="p-2 text-blue-600 hover:text-blue-700 rounded-full hover:bg-blue-50" title="Download">
           <Download size={20} />
         </button>
-
+      </div>
+  
       {/* File icon, name, and status */}
       <div className="flex items-center gap-4">
         {/* Left: File icon */}
@@ -90,15 +77,15 @@ const FileCard: React.FC<GuestFileCardProps> = ({
           alt="File icon"
           className="w-16 h-16 object-contain"
         />
-
+  
         {/* Middle: File info and status */}
         <div className="flex-1">
           <h2 className="text-lg font-semibold text-gray-800">{fileName}</h2>
         </div>
       </div>
-      </div>
     </div>
   );
+  
 };
 
 export default FileCard;
