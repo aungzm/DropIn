@@ -55,6 +55,7 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
             url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
             maxDownloads: fileLink.maxDownloads ?? "unlimited",
             remainingDownloads: fileLink.maxDownloads ?? "unlimited",
+            notes: fileLink.notes,
             expiresAt: fileLink.expiresAt
         });
     } catch (error) {
@@ -238,8 +239,8 @@ export const getfileShareInfo = async (req: Request, res: Response): Promise<voi
             url: process.env.BASE_URL + "/shares/file/" + link.shareSecret,
             expiresAt: link.expiresAt,
             maxDownloads: link.maxDownloads ?? "unlimited",
-            downloads: link.downloads ?? 0,
-            remainingDownloads: link.maxDownloads ? link.maxDownloads - (link.downloads ?? 0) : "unlimited"
+            remainingDownloads: link.maxDownloads ? link.maxDownloads - (link.downloads ?? 0) : "unlimited",
+            notes: link.notes,
         }));
 
         res.status(200).json(linksInfo);
@@ -270,7 +271,7 @@ export const getSpaceShareInfo = async (req: Request, res: Response): Promise<vo
             expiresAt: link.expiresAt,
             notes: link.notes,
             maxDownloads: "unlimited",
-            remainingDownloads: "unlimited"
+            remainingDownloads: "unlimited",
         }));
 
         res.status(200).json(linksInfo);

@@ -37,7 +37,7 @@ const ShareManagement: React.FC<ShareManagementProps> = ({
 
   if (!isOpen) return null;
 
-  const addNewShare = async (maxDownloads: number | string, expiresAt: string | null, notes: string) => {
+  const addNewShare = async (maxDownloads: number | null, expiresAt: string | null, notes: string) => {
     try {
       const endpoint = type === 'space' ? `/shares/space/${spaceIdOrFileId}` : `/shares/file/${spaceIdOrFileId}`;
       const response = await api.post(endpoint, { maxDownloads, expiresAt, notes });
@@ -51,7 +51,7 @@ const ShareManagement: React.FC<ShareManagementProps> = ({
     }
   };
 
-  const modifyShare = async (url: string, newMaxDownloads: number | string, newExpiry: Date | null, newNotes: string) => {
+  const modifyShare = async (url: string, newMaxDownloads: number | null, newExpiry: Date | null, newNotes: string) => {
     try {
       const shareSecret = url.split('/').pop();
       const endpoint = type === 'space' ? `/shares/space/${spaceIdOrFileId}/${shareSecret}` : `/shares/file/${spaceIdOrFileId}/${shareSecret}`;
@@ -65,7 +65,7 @@ const ShareManagement: React.FC<ShareManagementProps> = ({
         const index = spaceShareData.findIndex((share) => share.url === url);
         spaceShareData[index] = {
           ...spaceShareData[index],
-          maxDownloads: newMaxDownloads,
+          maxDownloads: newMaxDownloads ?? "unlimited",
           expiresAt: newExpiry,
           notes: newNotes
         };
@@ -97,10 +97,11 @@ const ShareManagement: React.FC<ShareManagementProps> = ({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const formattedMaxDownloads = maxDownloads ? parseInt(maxDownloads) : null;
     if (editingShare) {
-      await modifyShare(editingShare.url, maxDownloads || 'unlimited', expiry, notes);
+      await modifyShare(editingShare.url, formattedMaxDownloads, expiry, notes);
     } else {
-      await addNewShare(maxDownloads || 'unlimited', expiry ? expiry.toISOString() : null, notes);
+      await addNewShare(formattedMaxDownloads, expiry ? expiry.toISOString() : null, notes);
     }
     resetForm();
   };
@@ -129,36 +130,38 @@ const ShareManagement: React.FC<ShareManagementProps> = ({
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <div className="space-y-3 mb-6">
-        {spaceShareData.map((share) => (
-          <div key={share.url} className="flex items-center gap-4">
-            <div className="w-1/4 p-2 bg-[#1a4d6d] text-white rounded truncate">
-              {share.notes}
-            </div>
-            <div className="flex-1 p-2 bg-[#1a4d6d] text-white rounded truncate">
-              {share.url}
-            </div>
-            <div className="flex gap-2">
-              <button
-                className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                onClick={() => openQrModal(share.url)}
-              >
-                <QrCode size={20} />
-              </button>
-              <button
-                className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                onClick={() => openEditModal(share)}
-              >
-                <Edit size={20} />
-              </button>
-              <button
-                className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
-                onClick={() => handleDeleteShare(share.url)}
-              >
-                <Trash size={20} />
-              </button>
-            </div>
-          </div>
-        ))}
+          {spaceShareData.map((share) => {
+            return (
+              <div key={share.url} className="flex items-center gap-4">
+                <div className="flex-1 p-2 bg-[#1a4d6d] text-white rounded truncate">
+            {share.notes}
+                </div>
+                <div className="flex-1 p-2 bg-[#1a4d6d] text-white rounded truncate">
+            {share.url}
+                </div>
+                <div className="flex gap-2">
+            <button
+              className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              onClick={() => openQrModal(share.url)}
+            >
+              <QrCode size={20} />
+            </button>
+            <button
+              className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              onClick={() => openEditModal(share)}
+            >
+              <Edit size={20} />
+            </button>
+            <button
+              className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
+              onClick={() => handleDeleteShare(share.url)}
+            >
+              <Trash size={20} />
+            </button>
+                </div>
+              </div>
+            );
+          })}
       </div>
 
       <div className="flex justify-center gap-4">
