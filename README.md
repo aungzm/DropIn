@@ -12,8 +12,9 @@ A lightweight, user-friendly platform designed for quick file sharing, managing 
  
 
 ## Overview
-DropIn was built to streamline the file sharing process in both small team and large-scale environments. Whether you’re collaborating on a project, distributing files to customers, or simply storing personal backups, DropIn gives you full control over what you upload and with whom you share it.By focusing on a clean and intuitive interface, DropIn aims to remove the headaches of scattered file management, so you can focus on the important stuff—collaboration, iteration, and innovation.
- 
+I built DropIn because I was tired of hitting file size limits on regular cloud services. It's a simple platform that lets you share those massive files that Google Drive and others just can't handle.
+Whether you're sending huge video files to friends, backing up your personal projects, or collaborating with a small team, DropIn makes it super straightforward. I focused on making it clean and easy to use - just upload your stuff and share it with whoever you want, no headaches involved.
+The whole point was to create something that just works when you need to move big files around. No more splitting files into smaller chunks or dealing with upload errors. Just pick your files, share them, and get back to what you're actually working on.
 
 ## Features
 
