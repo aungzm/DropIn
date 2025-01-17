@@ -65,14 +65,40 @@ These instructions will help you get a copy of DropIn running on your local mach
  
 
 ## Project Structure
-Here’s a high-level look at the folders and files you might find in this repository: 
-  - **src/backend/controllers**: Contains controllers (business logic).
-  - **src/backend/prisma**: Stores configuration files (e.g., database connection, environment).
-  - **src/backend/routes**: Handles api requests to backend and validation for such api requests.
-  - **src/backend/helpers**: Helper functions and utilities.
-  - **src/frontend/api**: Handles api runner and session restoration for frontend using JWT refresh and access tokens
+Here’s a high-level look at the folders and files you might find in this repository:
+  - **backend/**: Contains all backend logic 
+  - **backend/controllers**: Contains controllers (business logic).
+  - **backend/prisma**: Stores configuration files (e.g., database connection, environment).
+  - **backend/routes**: Handles api requests to backend and validation for such api requests.
+  - **backend/helpers**: Helper functions and utilities.
+  - **frontend/**: Contains all frontend
+  - **frontend/api**: Handles api runner and session restoration for frontend using JWT refresh and access tokens
 
- 
+```
+DropIn/
+├── backend/
+│   ├── controllers/
+│   ├── prisma/
+│   ├── routes/
+│   ├── helpers/
+│   └── ...
+├── frontend/
+│   ├── api/
+│   ├── ...
+│   └── ...
+├── .gitignore
+├── package.json
+├── README.md
+└── ...
+```
+## Tech Stack
+Here's what I used for this project
+-   **React**: Frontend library for building dynamic user interfaces.
+-   **Tailwind CSS**: Utility-first CSS framework for rapid UI development.
+-   **Typescript**: A strongly typed language built on JavaScript that catches errors before they happen through static type checking.
+-   **Node.js**: JavaScript runtime environment for server-side code.
+-   **Express**: Fast, minimalist web framework for handling backend routes and middleware.
+-   **Prisma**: Modern ORM (Object-Relational Mapping) that provides a type-safe query builder for databases.
 
 ## Contributing
 Here are some ways you can contribute to DropIn:
