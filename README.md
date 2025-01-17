@@ -1,4 +1,9 @@
+
 # DropIn
+
+https://github.com/user-attachments/assets/e9ad789e-dc8f-4c9f-8faa-9af8e65146af
+
+
 A lightweight, user-friendly platform designed for quick file sharing, managing storage space, and seamless collaboration. It is my first attempt at a full stack project using different frameworks together. 
 ## Table of Contents
 
@@ -63,7 +68,7 @@ These instructions will help you get a copy of DropIn running on your local mach
   2. **Create a Space**: Organize your work by creating a new Space. You can invite teammates or make it private.
   3. **Upload Files**: Use the “Upload” button or drag and drop your files directly into the interface. Monitor progress in real-time.
   4. **Share the link**: Either set the link for files individually or share the entire space with the space link .
-  5. ** Additional features**: Set expiry dates for links or at maximum downloads for file links
+  5. **Additional features**: Set expiry dates for links or at maximum downloads for file links
  
 
 ## Project Structure
