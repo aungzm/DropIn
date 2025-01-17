@@ -17,20 +17,19 @@ const App: React.FC = () => {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/settings" element={<Setting />} />
-        <Route path="/upload/:spaceId" element={<Upload />} />
-        <Route path="/users" element={<Users />} />
         <Route path="/shares/space/:shareSecret" element={<SpaceShare />} />
         <Route path="/shares/file/:shareSecret" element={<FileSharePage />} />
 
-
+        {/* Protected Routes */}
         <Route element={<PrivateRoute />}>
-          
-
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/settings" element={<Setting />} />
+          <Route path="/upload/:spaceId" element={<Upload />} />
+          <Route path="/users" element={<Users />} />
         </Route>
 
-        {/* Default Route */}
+        {/* Catch all route */}
         <Route path="*" element={<Login />} />
       </Routes>
     </Router>
