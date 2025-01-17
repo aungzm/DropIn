@@ -292,33 +292,28 @@ export const changeProfilePic = async (req: Request, res: Response): Promise<voi
 };
 
 export const getProfilePic = async (req: Request, res: Response): Promise<void> => {
-    const { id: userId } = req.user!; // Assuming `req.user` is populated by authentication middleware
-
     try {
-        // Fetch profile picture metadata from the database
+        const { id: userId } = req.user!;
         const profilePic = await prisma.profilePic.findUnique({ where: { userId } });
+
         if (!profilePic) {
-            res.status(404).json({ error: "Profile picture not found" });
+            res.status(200).json(null);
             return;
         }
 
-        // Resolve the full file path
         const filePath = path.join(__dirname, "../../", profilePic.storageUrl);
-        console.log(filePath);
 
-        // Check if the file exists
-        try {
-            await fs.access(filePath); // Throws if the file does not exist
-        } catch {
-            res.status(404).json({ error: "Profile picture file not found on server" });
+        if (!await fileExists(filePath)) {
+            // Clean up DB if file doesn't exist
+            await prisma.profilePic.delete({ where: { userId } });
+            res.status(200).json(null);
             return;
         }
 
-        // Send the file as a response
         res.sendFile(filePath, (err) => {
             if (err) {
-                console.error("Error sending file:", err);
-                res.status(500).json({ error: "Internal server error while sending the file" });
+                console.error("Error sending profile picture:", err);
+                res.status(500).json({ error: "Failed to send profile picture" });
             }
         });
     } catch (error) {

@@ -3,46 +3,44 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 
 const Navbar = () => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    // State to hold user info and profile picture
-    const [username, setUsername] = useState<string>("Username");
-    const [role, setRole] = useState<string>("user");
-    const [profilePic, setProfilePic] = useState<string>("");
+  const [username, setUsername] = useState("Username");
+  const [role, setRole] = useState("user");
+  const [profilePic, setProfilePic] = useState("");
+  
+  // Track whether you actually used a blob URL
+  let blobUrl: string | null = null;
 
-    // Fetch user info and profile picture on component initialization
-    useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                // Fetch user info
-                const userInfoResponse = await api.get("/users/");
-                const user = userInfoResponse.data.user;
-                setUsername(user.username);
-                setRole(user.role);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // Fetch user info
+        const userInfoResponse = await api.get("/users/");
+        const user = userInfoResponse.data.user;
+        setUsername(user.username);
+        setRole(user.role);
 
-                // Fetch profile picture
-                try {
-                    const profilePicResponse = await api.get("/users/profile", {
-                        responseType: "blob"
-                    });
-                    const imageUrl = URL.createObjectURL(profilePicResponse.data);
-                    setProfilePic(imageUrl);
-                } catch (error: any) {
-                    if (error.response?.data?.error === "Profile picture not found") {
-                        setProfilePic("https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg"); // Default placeholder image
-                    } else {
-                        console.error("Error fetching profile picture:", error);
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-                // Optional: Redirect to login if user is not authenticated
-                navigate("/login");
-            }
-        };
+        // Fetch profile pic as a blob
+        const profilePicResponse = await api.get("/users/profile", {
+          responseType: "blob",
+        });
 
-        fetchUserData();
-    }, [navigate]);
+        // Convert the blob to a URL
+        const contentType = profilePicResponse.headers["content-type"];
+        if (contentType?.startsWith("image/")) {
+            const imageUrl = URL.createObjectURL(profilePicResponse.data);
+            setProfilePic(imageUrl);
+          } else {
+            setProfilePic("/src/assets/profile.jpg");
+          }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        navigate("/login");
+      }
+    };
+    fetchUserData();    
+  }, [navigate]);
 
     // Helper function to toggle the dropdown menu
     const toggleDropdown = () => {
