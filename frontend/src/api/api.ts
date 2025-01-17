@@ -11,6 +11,7 @@ const api = axios.create({
 const getAccessToken = () => localStorage.getItem("accessToken");
 const setAccessToken = (token: string) => localStorage.setItem("accessToken", token);
 const getRefreshToken = () => localStorage.getItem("refreshToken");
+const setRefreshToken = (token: string) => localStorage.setItem("refreshToken", token);
 const removeTokens = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
@@ -18,17 +19,22 @@ const removeTokens = () => {
 
 // Helper function to check if a JWT token is valid
 const isTokenValid = (token: string) => {
+  if (!token) return false;
   try {
-    const payload = JSON.parse(atob(token.split(".")[1])); // Decode JWT payload
-    return payload.exp * 1000 > Date.now(); // Compare expiry time with current time
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    // Add some buffer time (e.g., 10 seconds) to prevent edge cases
+    return payload.exp * 1000 > Date.now() + 10000;
   } catch {
-    return false; // Invalid token
+    return false;
   }
 };
 
 // Queue to handle multiple failed requests while refreshing the token
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: any) => void;
+}> = [];
 
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach(prom => {
@@ -41,9 +47,8 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// External navigation function (to be provided by React components)
 let navigate: (path: string) => void = () => {
-  console.error("Navigation function is not set. Ensure it is provided via setNavigateFunction.");
+  console.error("Navigation function not set");
 };
 
 export const setNavigateFunction = (navFn: (path: string) => void) => {
@@ -62,19 +67,17 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle invalid access tokens
+// Response interceptor to handle token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If the error is due to an invalid access token
-    if (
-      error.response?.status === 401 &&
-      error.response?.data?.error === "Unauthorized: Invalid token" &&
-      !originalRequest._retry
-    ) {
-      originalRequest._retry = true; // Prevent infinite retry loops
+    // Check for various 401 error conditions that might need token refresh
+    const needsRefresh = error.response?.status === 401 && !originalRequest._retry;
+
+    if (needsRefresh) {
+      originalRequest._retry = true;
       const refreshToken = getRefreshToken();
 
       if (refreshToken) {
@@ -82,39 +85,41 @@ api.interceptors.response.use(
           isRefreshing = true;
 
           try {
-            // Refresh the access token using the refresh token
-            const response = await axios.post(
-              "http://localhost:5000/api/auth/access-token",
-              { refreshToken },
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              }
+            // Match backend endpoint structure: using query parameter
+            const response = await axios.get(
+              `${api.defaults.baseURL}/auth/access-token?refreshToken=${refreshToken}`
             );
-
+            console.log("Access token refreshed:", response.data.accessToken);
             const newAccessToken = response.data.accessToken;
-
-            // Save the new access token
             setAccessToken(newAccessToken);
-            processQueue(null, newAccessToken);
 
+            // Process queued requests
+            processQueue(null, newAccessToken);
             isRefreshing = false;
 
-            // Retry the original request with the new access token
+            // Retry original request
             originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
             return api.request(originalRequest);
-          } catch (refreshError) {
-            // If refreshing fails, clear tokens and redirect to login
+          } catch (refreshError: any) {
+            const errorMessage = refreshError.response?.data?.error;
+            
+            // Handle specific error messages from your backend
+            if (
+              errorMessage === "Invalid refresh token" ||
+              errorMessage === "Refresh token has expired" ||
+              errorMessage === "User not found"
+            ) {
+              removeTokens();
+              navigate('/login');
+            }
+
             processQueue(refreshError, null);
-            removeTokens();
-            navigate('/login');
             isRefreshing = false;
             return Promise.reject(refreshError);
           }
         }
 
-        // Queue failed requests while the token is being refreshed
+        // Queue failed requests while refreshing
         return new Promise((resolve, reject) => {
           failedQueue.push({
             resolve: (token: string) => {
@@ -127,9 +132,10 @@ api.interceptors.response.use(
           });
         });
       } else {
-        // No refresh token available, redirect to login
+        // No refresh token available
         removeTokens();
         navigate('/login');
+        return Promise.reject(new Error("No refresh token available"));
       }
     }
 

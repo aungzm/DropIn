@@ -1,0 +1,25 @@
+{
+    "name": "my-project",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+        "frontend",
+        "backend"
+    ],
+    "scripts": {
+      "install:all": "npm install --workspaces",
+      "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+      "dev:frontend": "npm run dev --workspace=frontend",
+      "dev:backend": "npm run dev --workspace=backend",
+      "build": "npm run build --workspaces",
+      "build:frontend": "npm run build --workspace=frontend",
+      "build:backend": "npm run build --workspace=backend",
+      "prisma:migrate": "npm run prisma:migrate --workspace=backend",
+      "prisma:generate": "npm run prisma:generate --workspace=backend",
+      "prisma:seed": "npm run prisma:seed --workspace=backend",
+      "prisma:reset": "npm run prisma:reset --workspace=backend"
+    },
+    "devDependencies": {
+        "concurrently": "^9.1.2"
+    }
+}
