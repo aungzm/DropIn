@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import "react-datepicker/dist/react-datepicker.css";
 import getFileIcon from '../utils/getFileIcon';
 import ShareModal from './ShareModal';
-import { Share2, LockKeyhole, LockKeyholeOpen, Trash2, Download, Pencil } from 'lucide-react';
+import { Share2, LockKeyhole, LockKeyholeOpen, Trash2, Download, Pencil, Link } from 'lucide-react';
 import LinkModal from './LinkModal';
 
 interface FileCardProps {
@@ -211,6 +211,17 @@ const FileCard: React.FC<FileCardProps> = ({
           title="Share" 
         >
           <Share2 size={20} />
+        </button>
+
+        {/* Link */}
+        <button
+          className="hover:text-blue-700"
+          title="Link"
+          onClick={() => {
+            setShowLinkModal(true);
+          }}
+        >
+          <Link size={20}/>
         </button>
 
         {/* Delete */}
