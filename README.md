@@ -51,7 +51,7 @@ These instructions will help you get a copy of DropIn running on your local mach
 
   - **Node.js** (version X.X or higher)
   - **npm** or **yarn**
-  - (Optional) **Docker** if you plan to run DropIn in a container simply pull with `docker pull aungzm/dropin`
+  - (Coming Soon) **Docker** if you plan to run DropIn in a container simply pull with `docker pull *******`
 ### Installation
 
   1. **Clone the repository**:
