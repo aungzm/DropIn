@@ -51,7 +51,8 @@ These instructions will help you get a copy of DropIn running on your local mach
   1. **Clone the repository**:
   2. **Install dependencies**:
   3. **Set up environment variables**: Do this by copying env.example and renaming it and filling the file out as specified
-  4. **Run the development server**: To start run `npm start` or `npm run dev` (for dev mode).
+  4. **Setup prisma**: Run `prisma:generate` and `prisma:seed` to establish a sqlite database and seed the admin user.
+  4. **Run the server**: To start run `npm start` or `npm run dev` (for dev mode).
   5. **Configure reverse proxy**: Point a reverse proxy towards the application (Either nginx or apache)
  
 
