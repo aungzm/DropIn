@@ -170,7 +170,7 @@ const FileCard: React.FC<FileCardProps> = ({
       {/* Action Icons in top-right */}
       <div className="absolute top-6 right-5 flex items-center space-x-3 ">
         {/* Unlock SVG */}
-        { isFileLocked && (<button
+        { !isFileLocked && (<button
           className="text-blue-700 hover:text-blue-800"
           title="Unlock"
           onClick={handleUnlockClick}
@@ -178,7 +178,7 @@ const FileCard: React.FC<FileCardProps> = ({
           < LockKeyholeOpen size={20} />
         </button>)}
         {/* Lock SVG */}
-        { !isFileLocked && (<button
+        { isFileLocked && (<button
           className="text-blue-700 hover:text-blue-800"
           title="Lock"
           onClick={handleLockClick}

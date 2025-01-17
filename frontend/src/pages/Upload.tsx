@@ -258,7 +258,7 @@ const Upload = () => {
           {spaceName}
         </h1>
         {/* Unlock SVG */}
-        { isSpaceLocked && (<button
+        { !isSpaceLocked && (<button
           className="text-blue-700 hover:text-blue-800"
           title="Unlock"
           onClick={() => {
@@ -269,7 +269,7 @@ const Upload = () => {
           <LockKeyholeOpen size={20}/>
         </button>)}
         {/* Lock SVG */}
-        { !isSpaceLocked && (<button
+        { isSpaceLocked && (<button
           className="text-blue-700 hover:text-blue-800"
           title="Lock"
           onClick={() => {
