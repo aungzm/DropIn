@@ -2,13 +2,14 @@
 A lightweight, user-friendly platform designed for quick file sharing, managing storage space, and seamless collaboration. It is my first attempt at a full stack project using different frameworks together. 
 ## Table of Contents
 
-  1. [Overview]()
-  2. [Features]()
-  3. [Getting Started]()
-  4. [Usage]()
-  5. [Project Structure]()
-  6. [Contributing]()
-  7. [License]()
+  1. [Overview](#overview)
+  2. [Features](#features)
+  3. [Getting Started](#getting-started)
+  4. [Usage](#usage)
+  5. [Project Structure](#project-structure)
+  6. [Tech stack](#tech-stack)
+  7. [Contributing](#contributing)
+  8. [License](#license)
  
 
 ## Overview
@@ -104,9 +105,9 @@ Here's what I used for this project
 ## Contributing
 Here are some ways you can contribute to DropIn:
   1. Open a Pull Request. This is my one of the first projects that I wrote solely from start to end so feel free add features.
-  2. Also issues and suggestions in the [Issues]() section are welcom!
+  2. Also issues and suggestions in the [Issues](https://github.com/aungzm/DropIn/issues) section are welcome!
   3. Fork this Repo and add your own features!
  
 
 ## License
-This project is licensed under the [MIT License](). You’re free to modify, distribute, and use the code in any way that aligns with the license terms.
+This project is licensed under the [MIT License](https://github.com/aungzm/DropIn/blob/main/LICENSE). You’re free to modify, distribute, and use the code in any way that aligns with the license terms.

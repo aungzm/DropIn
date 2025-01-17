@@ -31,7 +31,7 @@ const ShareManagement: React.FC<ShareManagementProps> = ({
 }) => {
   const [maxDownloads, setMaxDownloads] = useState('');
   const [expiry, setExpiry] = useState<Date | null>(null);
-  const [editingShare, setEditingShare] = useState<boolean>(!!spaceShareData);
+  const [editingShare, setEditingShare] = useState<boolean>(!!(spaceShareData && spaceShareData.url));
 
   if (!isOpen) return null;
   console.log("is it editing", editingShare);
