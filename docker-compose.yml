@@ -1,0 +1,28 @@
+services:
+  backend:
+    container_name: DropIn-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    # ports:
+    #   - "5000:5000" # Uncomment if you want to expose the backend port
+    networks:
+      - dropin-network
+
+  frontend:
+    container_name: DropIn-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "5173:80"  # Mapping container port 80 (nginx) to host 5173
+    networks:
+      - dropin-network
+
+networks:
+  dropin-network:
+    driver: bridge
