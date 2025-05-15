@@ -10,6 +10,7 @@
     "rootDir": "./",
     "resolveJsonModule": true,
     "typeRoots": ["./node_modules/@types"],
+    "types": ["node"],
     "baseUrl": "./"
   },
   "include": ["*.ts", "**/*.ts", "controllers/fileController.ts"],
