@@ -10,9 +10,11 @@ import spaceRoutes from "./routes/spaceRoutes";
 import shareRoutes from "./routes/shareRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import cors from "cors";
+import path from "path";
 
-// Load environment variables from the project root
-dotenv.config();
+// Load environment variables
+// If the .env is in the backend folder, adjust the path accordingly:
+dotenv.config({ path: "./backend/.env" });
 
 // Initialize Prisma Client
 const prisma = new PrismaClient();
@@ -24,27 +26,31 @@ const app: Application = express();
 app.use(express.json());
 app.use(morgan("dev"));
 
-
 // Enable CORS
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173", 
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH","OPTIONS"], // Allowed HTTP methods
-    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
-    credentials: true, // Allow cookies and credentials
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
+// Serve static frontend assets from the "public" folder
+app.use(express.static(path.join(__dirname, "public")));
 
-// Defined routes
+// Fallback to serve index.html for SPA routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Defined routes for APIs
 app.use("/api/users", userRoutes);
-app.use("/api/admins", adminRoutes)
+app.use("/api/admins", adminRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/spaces", spaceRoutes);
 app.use("/api/shares", shareRoutes);
-
-
 
 // Function to get the local IP address
 const getLocalIpAddress = (): string => {
@@ -77,7 +83,7 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error("Error starting the server:", error);
-    process.exit(1); // Exit the application if there's an error
+    process.exit(1);
   }
 };
 
