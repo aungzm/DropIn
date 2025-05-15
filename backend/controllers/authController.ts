@@ -4,11 +4,9 @@ import { PrismaClient } from "@prisma/client";
 import jwt, { JsonWebTokenError } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-import path from "path";
 
 const prisma = new PrismaClient();
-const envPath = path.resolve(__dirname, "../../.env");
-dotenv.config({ path: envPath });
+dotenv.config();
 
 // Load both secrets from environment variables
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;

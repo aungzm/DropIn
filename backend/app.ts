@@ -2,7 +2,6 @@ import express, { Application } from "express";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import os from "os";
-import path from "path"; // Import path module
 import { PrismaClient } from "@prisma/client";
 import userRoutes from "./routes/userRoutes";
 import authRoutes from "./routes/authRoutes";

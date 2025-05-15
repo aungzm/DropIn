@@ -11,8 +11,7 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
 
-const envPath = path.resolve(__dirname, "../../.env");
-dotenv.config({ path: envPath });
+dotenv.config();
 const prisma = new PrismaClient();
 
 // Add file share link
