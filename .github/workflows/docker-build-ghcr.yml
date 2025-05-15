@@ -1,0 +1,44 @@
+name: Build and Push Docker Images to GHCR
+
+on:
+  push:
+    branches:
+      - main  # Change to your desired branch
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Log in to GitHub Container Registry
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build the Backend Image
+      - name: Build Backend Image
+        run: |
+          docker build -t ghcr.io/${{ github.repository_owner }}/dropin-backend:latest \
+            -f backend/Dockerfile backend
+
+      # Build the Frontend Image
+      - name: Build Frontend Image
+        run: |
+          docker build -t ghcr.io/${{ github.repository_owner }}/dropin-frontend:latest \
+            -f frontend/Dockerfile frontend
+
+      # Push the Backend Image
+      - name: Push Backend Image
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/dropin-backend:latest
+
+      # Push the Frontend Image
+      - name: Push Frontend Image
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/dropin-frontend:latest
