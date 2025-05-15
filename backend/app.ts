@@ -13,7 +13,7 @@ import adminRoutes from "./routes/adminRoutes";
 import cors from "cors";
 
 // Load environment variables from the project root
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config();
 
 // Initialize Prisma Client
 const prisma = new PrismaClient();
@@ -29,7 +29,7 @@ app.use(morgan("dev"));
 // Enable CORS
 app.use(
   cors({
-    origin: "http://localhost:5173", // Replace with your frontend's URL
+    origin: process.env.FRONTEND_URL || "http://localhost:5173", 
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH","OPTIONS"], // Allowed HTTP methods
     allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
     credentials: true, // Allow cookies and credentials

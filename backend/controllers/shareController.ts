@@ -47,7 +47,7 @@ export const addFileShareLink = async (req: Request, res: Response): Promise<voi
         res.status(201).json({ 
             message: "File share link created successfully!", 
             fileId: fileLink.fileId,
-            url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
+            url: process.env.FRONTEND_URL + "/shares/file/" + fileLink.shareSecret,
             maxDownloads: fileLink.maxDownloads ?? "unlimited",
             remainingDownloads: fileLink.maxDownloads ?? "unlimited",
             expiresAt: fileLink.expiresAt
@@ -89,7 +89,7 @@ export const modifyFileShareLink = async (req: Request, res: Response): Promise<
         res.status(200).json({ 
             message: "File share link created successfully!", 
             fileId: fileLink.fileId,
-            url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
+            url: process.env.FRONTEND_URL + "/shares/file/" + fileLink.shareSecret,
             maxDownloads: fileLink.maxDownloads,
             remainingDownloads: fileLink.maxDownloads === null ? "unlimited" : fileLink.maxDownloads - (fileLink.downloads ?? 0),
             expiresAt: fileLink.expiresAt
@@ -148,7 +148,7 @@ export const addSpaceShareLink = async (req: Request, res: Response): Promise<vo
         res.status(201).json({ 
             message: "Space share link created successfully!", 
             spaceId: spaceLink.spaceId,
-            url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
+            url: process.env.FRONTEND_URL + "/shares/space/" + spaceLink.shareSecret,
             expiresAt: spaceLink.expiresAt,
             maxDownloads: "unlimited",
             remainingDownloads: "unlimited",
@@ -199,7 +199,7 @@ export const modifySpaceShareLink = async (req: Request, res: Response): Promise
         res.status(200).json({ 
             message: "Space share modified successfully!", 
             spaceId: spaceLink.spaceId,
-            url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
+            url: process.env.FRONTEND_URL + "/shares/space/" + spaceLink.shareSecret,
             maxDownloads: "unlimited",
             remainingDownloads: "unlimited",
             expiresAt: spaceLink.expiresAt 
@@ -227,7 +227,7 @@ export const getfileShareInfo = async (req: Request, res: Response): Promise<voi
 
         const linkInfo = {
             id: fileLink.id,
-            url: process.env.BASE_URL + "/shares/file/" + fileLink.shareSecret,
+            url: process.env.FRONTEND_URL + "/shares/file/" + fileLink.shareSecret,
             expiresAt: fileLink.expiresAt,
             maxDownloads: fileLink.maxDownloads ?? "unlimited",
             remainingDownloads: fileLink.maxDownloads ? fileLink.maxDownloads - (fileLink.downloads ?? 0) : "unlimited",
@@ -257,7 +257,7 @@ export const getSpaceShareInfo = async (req: Request, res: Response): Promise<vo
 
         const linksInfo = {
             id: spaceLink.id,
-            url: process.env.BASE_URL + "/shares/space/" + spaceLink.shareSecret,
+            url: process.env.FRONTEND_URL + "/shares/space/" + spaceLink.shareSecret,
             expiresAt: spaceLink.expiresAt,
             maxDownloads: "unlimited",
             remainingDownloads: "unlimited",
@@ -430,9 +430,12 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
         const file = await prisma.file.findFirst({
             where: { id: fileId },
             include: {
-                fileLinks: {
-                    where: { shareSecret: shareSecret as string }
-                }
+            fileLinks: {
+                where: {
+                    shareSecret: shareSecret as string,
+                    expiresAt: { gte: new Date() },
+                },
+            }
             }
         });
 
@@ -441,7 +444,7 @@ export const guestDownloadFile = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        const fileLink = file.fileLinks[0];
+        const fileLink = file.fileLinks.find(link => link.maxDownloads === null || (link.maxDownloads > (link.downloads ?? 0)));
         if (!fileLink) {
             res.status(404).json({ error: "File share link not valid" });
             return;
@@ -522,7 +525,7 @@ export const guestDownloadAllFiles = async (req: Request, res: Response): Promis
         }
 
         const spaceLink = await prisma.spaceLink.findFirst({
-            where: { spaceId, shareSecret: shareSecret as string },
+            where: { spaceId, shareSecret: shareSecret as string, expiresAt: { gte: new Date() } },
             include: { fileLinks: true },
         });
 
@@ -628,7 +631,7 @@ export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<vo
 
     try {
         const spaceLink = await prisma.spaceLink.findFirst({
-            where: { spaceId, shareSecret: shareSecret as string },
+            where: { spaceId, shareSecret: shareSecret as string, expiresAt: { gte: new Date() } },
             include: { fileLinks: true },
         });
 
@@ -663,7 +666,7 @@ export const getSpaceInfoGuest = async (req: Request, res: Response): Promise<vo
                 return {
                     ...fileWithoutPassword,
                     locked: !!file.password, // Convert to boolean
-                    url: `${process.env.BASE_URL}/shares/file/${fileLink.shareSecret}`,
+                    url: `${process.env.FRONTEND_URL}/shares/file/${fileLink.shareSecret}`,
                     expiresAt: fileLink.expiresAt,
                     downloadsRemaining:
                         fileLink.maxDownloads !== null

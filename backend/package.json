@@ -8,10 +8,8 @@
     "dev": "nodemon --exec ts-node app.ts",
     "build": "tsc",
     "test": "npx jest --runInBand",
-    "prisma:migrate": "dotenv -e ../.env -- prisma migrate dev --name init",
-    "prisma:generate": "dotenv -e ../.env -- prisma generate",
-    "prisma:seed": "dotenv -e ../.env ts-node prisma/seed.ts",
-    "prisma:reset": "dotenv -e ../.env -- prisma migrate reset --force && npm run prisma:seed"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "prisma:reset": "prisma migrate reset --force && npm run prisma:seed"
   },
   "keywords": [],
   "author": "",

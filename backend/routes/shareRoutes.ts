@@ -23,11 +23,7 @@ import {
 
 const router = express.Router();
 
-/* ===========================
-   PUBLIC (Guest) ROUTES
-   =========================== */
 
-// Verify file share link (no token needed)
 router.get(
     "/file/verify",
     [ query("shareSecret", "Share Secret is required").notEmpty() ],
@@ -72,10 +68,6 @@ router.get(
     ],
     guestDownloadAllFiles
 );
-
-/* ===========================
-   PROTECTED ROUTES (Owners/Admin)
-   =========================== */
 
 // Get file share info (requires token)
 router.get(

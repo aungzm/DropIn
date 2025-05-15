@@ -1,0 +1,28 @@
+# .dockerignore
+
+# Common
+.git
+.vscode
+*.md
+*.log
+
+# Node specific
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Env files (these should be managed at runtime, not baked into the image)
+.env
+backend/.env
+frontend/.env
+backend/.env.*
+frontend/.env.*
+
+# Build artifacts (these are generated INSIDE the Docker build stages)
+backend/dist
+frontend/dist
+frontend/build
+
+# OS specific
+.DS_Store
+Thumbs.db
